@@ -1,0 +1,159 @@
+services:
+  # ----------------------------------------------------------------------------
+  # PostgreSQL Database (System of Record)
+  # ----------------------------------------------------------------------------
+  db:
+    image: postgres:15-alpine
+    container_name: steamscoop-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: ${POSTGRES_DB:-steamscoop}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-user} -d ${POSTGRES_DB:-steamscoop}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - steamscoop-network
+
+  # ----------------------------------------------------------------------------
+  # Redis (Task Broker & Ephemeral Cache)
+  # ----------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: steamscoop-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - steamscoop-network
+
+  # ----------------------------------------------------------------------------
+  # FastAPI Application Backend
+  # ----------------------------------------------------------------------------
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: steamscoop-api
+    restart: unless-stopped
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DEBUG: ${DEBUG:-true}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-steamscoop}
+      REDIS_URL: redis://redis:6379/0
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-development-secret-key-do-not-use-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - steamscoop-network
+
+  # ----------------------------------------------------------------------------
+  # Celery Ingestion & ML Background Worker
+  # ----------------------------------------------------------------------------
+  worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: steamscoop-worker
+    restart: unless-stopped
+    command: ["celery", "-A", "app.workers.celery_app", "worker", "--loglevel=info"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A app.workers.celery_app inspect ping || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-steamscoop}
+      REDIS_URL: redis://redis:6379/0
+      STEAM_API_KEY: ${STEAM_API_KEY:-}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - steamscoop-network
+
+  # ----------------------------------------------------------------------------
+  # Celery Beat Periodic Scheduler
+  # ----------------------------------------------------------------------------
+  beat:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: steamscoop-beat
+    restart: unless-stopped
+    command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - steamscoop-network
+
+  # ----------------------------------------------------------------------------
+  # React Web Frontend
+  # ----------------------------------------------------------------------------
+  web:
+    build:
+      context: ./apps/web
+      dockerfile: Dockerfile
+    container_name: steamscoop-web
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-3000}:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://127.0.0.1/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - steamscoop-network
+
+networks:
+  steamscoop-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  redis-data:
+

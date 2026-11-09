@@ -1,0 +1,170 @@
+# ==============================================================================
+# SteamScoop - .gitignore
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# 1. Environment Variables & Secrets (CRITICAL)
+# ------------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+secrets/
+.secrets/
+
+# ------------------------------------------------------------------------------
+# 2. Dependencies
+# ------------------------------------------------------------------------------
+# Python Virtual Environments & Packages
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+/bin/
+/lib/
+/include/
+!**/src/lib/**
+pip-wheel-metadata/
+.pip/
+
+# Node.js / Frontend Dependencies
+node_modules/
+.pnpm-store/
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp
+.pnp.js
+.pnp.cjs
+
+# ------------------------------------------------------------------------------
+# 3. Python Bytecode, Caches & Builds
+# ------------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ------------------------------------------------------------------------------
+# 4. Frontend & Web Build Outputs
+# ------------------------------------------------------------------------------
+dist/
+dist-ssr/
+frontend/dist/
+frontend/build/
+out/
+.next/
+.nuxt/
+*.tsbuildinfo
+
+# ------------------------------------------------------------------------------
+# 5. Machine Learning, Datasets & Large Artifacts
+# ------------------------------------------------------------------------------
+# Model checkpoints and weights (store in artifact/cloud storage, not git)
+*.pt
+*.pth
+*.bin
+*.onnx
+*.safetensors
+*.h5
+*.ckpt
+models/checkpoints/
+models/weights/
+checkpoints/
+saved_models/
+mlruns/
+wandb/
+
+# Raw review dumps and large datasets
+data/raw/
+data/processed/
+datasets/raw/
+datasets/processed/
+*.parquet
+*.feather
+*.csv.gz
+*.tar.gz
+*.zip
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*-checkpoint.ipynb
+
+# ------------------------------------------------------------------------------
+# 6. Local Databases & Persistence
+# ------------------------------------------------------------------------------
+*.sqlite
+*.sqlite3
+*.db
+postgres-data/
+redis-data/
+pgdata/
+local_storage/
+uploads/
+media/
+
+# ------------------------------------------------------------------------------
+# 7. Testing, Coverage & Linters
+# ------------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+.coverage.*
+coverage/
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.eslintcache
+
+# ------------------------------------------------------------------------------
+# 8. Logs & Temporary Files
+# ------------------------------------------------------------------------------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ------------------------------------------------------------------------------
+# 9. Operating System & IDE Files
+# ------------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# IDE configurations
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
