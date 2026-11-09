@@ -64,6 +64,9 @@ services:
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://localhost:3000,http://localhost}
     ports:
       - "${API_PORT:-8000}:8000"
+    volumes:
+      - ./apps/api/app:/app/app
+      - ./apps/api/alembic:/app/alembic
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
       interval: 10s
@@ -94,6 +97,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 15s
+    volumes:
+      - ./apps/api/app:/app/app
+      - ./apps/api/alembic:/app/alembic
     environment:
       APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-user}:${POSTGRES_PASSWORD:-password}@db:5432/${POSTGRES_DB:-steamscoop}
@@ -117,6 +123,9 @@ services:
     container_name: steamscoop-beat
     restart: unless-stopped
     command: ["celery", "-A", "app.workers.celery_app", "beat", "--loglevel=info"]
+    volumes:
+      - ./apps/api/app:/app/app
+      - ./apps/api/alembic:/app/alembic
     environment:
       APP_ENV: ${APP_ENV:-development}
       REDIS_URL: redis://redis:6379/0

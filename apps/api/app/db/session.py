@@ -2,7 +2,7 @@ import logging
 from collections.abc import Generator
 
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.core.config import get_settings
 
@@ -18,7 +18,9 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    """Base class for all SQLAlchemy 2.0 declarative models."""
 
 
 def get_db() -> Generator[Session, None, None]:

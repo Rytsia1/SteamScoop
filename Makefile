@@ -73,5 +73,9 @@ migrate: ## Apply database migrations with Alembic
 	@echo "==> Running database migrations..."
 	apps/api/.venv/bin/alembic -c apps/api/alembic.ini upgrade head
 
+seed: ## Seed database with deterministic development fixture data
+	@echo "==> Seeding database..."
+	apps/api/.venv/bin/python apps/api/scripts/seed_dev_data.py
+
 check: lint typecheck test ## Run full local verification (lint, typecheck, tests)
 

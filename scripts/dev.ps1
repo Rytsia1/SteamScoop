@@ -12,7 +12,7 @@
 
 param(
     [Parameter(Position=0)]
-    [ValidateSet("help", "setup", "validate-env", "up", "down", "down-v", "restart", "build", "logs", "ps", "lint", "format", "typecheck", "test", "test-backend", "test-frontend", "migrate", "check")]
+    [ValidateSet("help", "setup", "validate-env", "up", "down", "down-v", "restart", "build", "logs", "ps", "lint", "format", "typecheck", "test", "test-backend", "test-frontend", "migrate", "seed", "check")]
     [string]$Command = "help"
 )
 
@@ -36,6 +36,7 @@ function Show-Help {
     Write-Host "  .\scripts\dev.ps1 typecheck    - Run backend (mypy) and frontend (tsc) typechecks"
     Write-Host "  .\scripts\dev.ps1 test         - Run both backend and frontend test suites"
     Write-Host "  .\scripts\dev.ps1 migrate      - Apply Alembic migrations"
+    Write-Host "  .\scripts\dev.ps1 seed         - Seed database with development fixtures"
     Write-Host "  .\scripts\dev.ps1 check        - Run all verification checks (lint + typecheck + test)`n"
 }
 
@@ -153,6 +154,10 @@ switch ($Command) {
     "migrate" {
         Write-Host "==> Applying Alembic migrations..." -ForegroundColor Yellow
         & $AlembicExe -c "$RootDir\apps\api\alembic.ini" upgrade head
+    }
+    "seed" {
+        Write-Host "==> Seeding database with development fixtures..." -ForegroundColor Yellow
+        & $PyExe "$RootDir\apps\api\scripts\seed_dev_data.py"
     }
     "check" {
         Write-Host "`n=== 1. LINTING ===" -ForegroundColor Cyan
