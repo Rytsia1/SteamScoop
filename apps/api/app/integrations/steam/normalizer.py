@@ -25,10 +25,10 @@ logger = logging.getLogger("steamscoop.integrations.steam.normalizer")
 _DATE_FORMATS = [
     "%d %b, %Y",  # 17 Sep, 2020
     "%b %d, %Y",  # Sep 17, 2020
-    "%d %b %Y",   # 17 Sep 2020
+    "%d %b %Y",  # 17 Sep 2020
     "%d %B, %Y",  # 17 September, 2020
     "%B %d, %Y",  # September 17, 2020
-    "%Y-%m-%d",   # 2020-09-17
+    "%Y-%m-%d",  # 2020-09-17
 ]
 
 
@@ -179,9 +179,7 @@ def parse_app_reviews_response(
 
     # Steam loops or repeats the identical cursor when terminal page is reached
     has_more = (
-        len(normalized_reviews) > 0
-        and next_cursor is not None
-        and next_cursor != current_cursor
+        len(normalized_reviews) > 0 and next_cursor is not None and next_cursor != current_cursor
     )
 
     return ReviewPage(
@@ -230,9 +228,7 @@ def parse_store_appdetails_response(payload: dict[str, Any], app_id: int) -> Nor
     developers = [d.strip() for d in data.developers if d.strip()]
     publishers = [p.strip() for p in data.publishers if p.strip()]
 
-    release_date = (
-        parse_steam_release_date(data.release_date.date) if data.release_date else None
-    )
+    release_date = parse_steam_release_date(data.release_date.date) if data.release_date else None
 
     return NormalizedGameMetadata(
         steam_app_id=data.steam_appid or app_id,

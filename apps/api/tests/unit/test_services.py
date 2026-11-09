@@ -60,9 +60,7 @@ def test_game_service_get_by_steam_app_id_not_found(db_session: Session) -> None
     assert exc_info.value.code == "GAME_NOT_FOUND"
 
 
-def test_game_service_search_games(
-    db_session: Session, sample_catalog: dict[str, Any]
-) -> None:
+def test_game_service_search_games(db_session: Session, sample_catalog: dict[str, Any]) -> None:
     game_repo = GameRepository(db_session)
     service = GameService(game_repo)
 

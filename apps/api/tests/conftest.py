@@ -104,9 +104,7 @@ def sample_catalog(db_session: Session) -> dict[str, Any]:
         db_session.add(model)
         db_session.flush()
 
-    run = db_session.scalars(
-        select(PipelineRun).where(PipelineRun.ml_model_id == model.id)
-    ).first()
+    run = db_session.scalars(select(PipelineRun).where(PipelineRun.ml_model_id == model.id)).first()
     if run is None:
         run = PipelineRun(
             pipeline_type="sentiment",
@@ -121,9 +119,7 @@ def sample_catalog(db_session: Session) -> dict[str, Any]:
         db_session.flush()
 
     review1 = db_session.scalars(
-        select(Review).where(
-            Review.game_id == game1.id, Review.steam_review_id == 100000001
-        )
+        select(Review).where(Review.game_id == game1.id, Review.steam_review_id == 100000001)
     ).first()
     if review1 is None:
         review1 = Review(
@@ -142,9 +138,7 @@ def sample_catalog(db_session: Session) -> dict[str, Any]:
         db_session.flush()
 
     review2 = db_session.scalars(
-        select(Review).where(
-            Review.game_id == game1.id, Review.steam_review_id == 100000002
-        )
+        select(Review).where(Review.game_id == game1.id, Review.steam_review_id == 100000002)
     ).first()
     if review2 is None:
         review2 = Review(

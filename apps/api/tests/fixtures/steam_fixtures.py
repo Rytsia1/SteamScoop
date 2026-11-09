@@ -136,4 +136,3 @@ SAMPLE_STORE_APPDETAILS_UNAVAILABLE_PAYLOAD: dict[str, Any] = {
         "success": False,
     }
 }
-

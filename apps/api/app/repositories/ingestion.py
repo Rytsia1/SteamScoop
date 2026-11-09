@@ -121,6 +121,7 @@ def commit_ingestion_page_transaction(
     checkpoint_stream_key: str,
     collection_mode: str,
     watermark_at: datetime | None = None,
+    checkpoint_status: str = "running",
 ) -> IngestionBatch:
     """Atomic transaction invariant: commit review upserts, batch record,
 
@@ -186,7 +187,7 @@ def commit_ingestion_page_transaction(
                 watermark_at=watermark_at,
                 last_successful_job_id=job_id,
                 last_success_at=datetime.now(UTC),
-                status="idle",
+                status=checkpoint_status,
                 metadata_={},
             )
             session.add(checkpoint)
@@ -196,7 +197,7 @@ def commit_ingestion_page_transaction(
                 checkpoint.watermark_at = watermark_at
             checkpoint.last_successful_job_id = job_id
             checkpoint.last_success_at = datetime.now(UTC)
-            checkpoint.status = "idle"
+            checkpoint.status = checkpoint_status
             session.add(checkpoint)
 
         # Update parent job counters

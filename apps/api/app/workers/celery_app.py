@@ -21,6 +21,11 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     task_track_started=True,
     broker_connection_retry_on_startup=True,
+    imports=["app.workers.tasks"],
+    task_routes={
+        "app.workers.tasks.ingest_game_reviews": {"queue": "ingestion"},
+        "app.workers.tasks.cancel_ingestion_job": {"queue": "ingestion"},
+    },
 )
 
 

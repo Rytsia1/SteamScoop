@@ -7,9 +7,7 @@ from app.schemas.common import ResponseEnvelope
 from app.schemas.review import ReviewDetail
 
 
-def test_get_review_detail_contract(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_get_review_detail_contract(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     review_id = str(sample_catalog["review1"].id)
     game_id = str(sample_catalog["game1"].id)
 

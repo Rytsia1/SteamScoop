@@ -126,7 +126,9 @@ def test_parse_store_appdetails_success() -> None:
 
 def test_parse_store_appdetails_unavailable() -> None:
     with pytest.raises(SteamGameUnavailableError) as exc_info:
-        parse_store_appdetails_response(SAMPLE_STORE_APPDETAILS_UNAVAILABLE_PAYLOAD, app_id=99999999)
+        parse_store_appdetails_response(
+            SAMPLE_STORE_APPDETAILS_UNAVAILABLE_PAYLOAD, app_id=99999999
+        )
 
     assert exc_info.value.steam_app_id == 99999999
     assert exc_info.value.status_code == 404
@@ -146,4 +148,3 @@ def test_parse_steam_release_date_formats() -> None:
     assert parse_steam_release_date("Coming Soon") is None
     assert parse_steam_release_date("TBA") is None
     assert parse_steam_release_date("") is None
-

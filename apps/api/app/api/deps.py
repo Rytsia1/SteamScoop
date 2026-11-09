@@ -38,4 +38,3 @@ def get_review_service(
 def get_request_id(request: Request) -> str:
     """Extract or generate request correlation ID from request state."""
     return getattr(request.state, "request_id", None) or f"req_{uuid.uuid4().hex[:12]}"
-

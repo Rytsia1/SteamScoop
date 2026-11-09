@@ -92,4 +92,3 @@ def test_client_iterate_updated_reviews() -> None:
     pages = list(client.iterate_updated_reviews(steam_app_id=1145360, max_pages=1))
     assert len(pages) == 1
     assert len(pages[0].reviews) == 2
-

@@ -123,9 +123,7 @@ class GameRepository(BaseRepository[Game]):
 
         return items, has_more, next_cursor
 
-    def get_game_data_coverage(
-        self, game_id: uuid.UUID
-    ) -> tuple[datetime | None, int, list[str]]:
+    def get_game_data_coverage(self, game_id: uuid.UUID) -> tuple[datetime | None, int, list[str]]:
         """Compute live coverage metadata: (latest_collection_at, total_reviews, languages)."""
         review_count_stmt = select(func.count(Review.id)).where(Review.game_id == game_id)
         review_count = self.session.scalar(review_count_stmt) or 0
@@ -133,11 +131,7 @@ class GameRepository(BaseRepository[Game]):
         latest_time_stmt = select(func.max(Review.last_seen_at)).where(Review.game_id == game_id)
         latest_time = self.session.scalar(latest_time_stmt)
 
-        languages_stmt = (
-            select(Review.language)
-            .where(Review.game_id == game_id)
-            .distinct()
-        )
+        languages_stmt = select(Review.language).where(Review.game_id == game_id).distinct()
         languages = list(self.session.scalars(languages_stmt).all())
         if not languages:
             languages = ["all"]

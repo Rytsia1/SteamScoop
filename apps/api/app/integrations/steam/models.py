@@ -55,9 +55,7 @@ class ReviewPage(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     reviews: list[NormalizedReview] = Field(default_factory=list)
-    cursor: str | None = Field(
-        default=None, description="Continuation token for the next page"
-    )
+    cursor: str | None = Field(default=None, description="Continuation token for the next page")
     has_more: bool = Field(
         default=False, description="True if additional pages are available to consume"
     )

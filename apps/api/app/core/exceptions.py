@@ -113,3 +113,17 @@ class ValidationDomainError(DomainError):
             details=details,
         )
 
+
+class IngestionJobNotFoundError(ResourceNotFoundError):
+    """Raised when an ingestion job cannot be located by ID."""
+
+    def __init__(
+        self,
+        job_id: str,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Ingestion job '{job_id}' was not found.",
+            code="INGESTION_JOB_NOT_FOUND",
+            details=details,
+        )

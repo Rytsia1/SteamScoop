@@ -59,4 +59,3 @@ def test_decode_cursor_invalid_structure() -> None:
     bad_token2 = base64.urlsafe_b64encode(json.dumps(["val", "not-a-uuid"]).encode()).decode()
     with pytest.raises(InvalidCursorError):
         decode_cursor(bad_token2)
-

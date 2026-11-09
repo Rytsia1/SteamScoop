@@ -32,9 +32,7 @@ def test_list_games_contract(client: TestClient, sample_catalog: dict[str, Any])
     assert first.catalog_status == "indexed"
 
 
-def test_list_games_filter_and_search(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_list_games_filter_and_search(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     # Filter by query 'Hades'
     response = client.get("/api/v1/games?q=Hades")
     assert response.status_code == 200
@@ -49,9 +47,7 @@ def test_list_games_filter_and_search(
     assert len(response_rpg.json()["data"]) >= 1
 
 
-def test_list_games_pagination_cursor(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_list_games_pagination_cursor(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     res1 = client.get("/api/v1/games?limit=1")
     assert res1.status_code == 200
     meta1 = res1.json()["meta"]["pagination"]
@@ -79,9 +75,7 @@ def test_list_games_validation_error(client: TestClient) -> None:
     assert len(data["error"]["details"]) > 0
 
 
-def test_get_game_by_id_contract(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_get_game_by_id_contract(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     game_id = str(sample_catalog["game1"].id)
 
     response = client.get(f"/api/v1/games/{game_id}")
@@ -129,9 +123,7 @@ def test_get_game_by_steam_app_id_not_found(client: TestClient) -> None:
     assert data["error"]["code"] == "GAME_NOT_FOUND"
 
 
-def test_list_game_reviews_contract(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_list_game_reviews_contract(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     game_id = str(sample_catalog["game1"].id)
 
     response = client.get(f"/api/v1/games/{game_id}/reviews?limit=5")
@@ -152,9 +144,7 @@ def test_list_game_reviews_contract(
     assert isinstance(review.voted_up, bool)
 
 
-def test_list_game_reviews_filtering(
-    client: TestClient, sample_catalog: dict[str, Any]
-) -> None:
+def test_list_game_reviews_filtering(client: TestClient, sample_catalog: dict[str, Any]) -> None:
     game_id = str(sample_catalog["game1"].id)
 
     # Filter steam_recommended=true

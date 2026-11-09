@@ -34,9 +34,7 @@ class ReviewService:
             sentiment_summary = SentimentSummary(
                 label=sentiment.label,
                 confidence=(
-                    float(sentiment.confidence)
-                    if sentiment.confidence is not None
-                    else None
+                    float(sentiment.confidence) if sentiment.confidence is not None else None
                 ),
                 model_version=model.model_key if model else "unknown",
             )

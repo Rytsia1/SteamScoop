@@ -79,4 +79,3 @@ class GameQueryParams(BaseModel):
         default="name_asc",
         description="Sort order",
     )
-

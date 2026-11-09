@@ -79,9 +79,7 @@ def create_application() -> FastAPI:
 
     # Exception Handler: Domain Errors
     @app.exception_handler(DomainError)
-    async def domain_exception_handler(
-        request: Request, exc: DomainError
-    ) -> JSONResponse:
+    async def domain_exception_handler(request: Request, exc: DomainError) -> JSONResponse:
         request_id = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
         now_utc = datetime.now(UTC).isoformat()
 
@@ -112,9 +110,7 @@ def create_application() -> FastAPI:
 
     # Exception Handler: Starlette HTTP Exceptions (404, 405, etc.)
     @app.exception_handler(StarletteHTTPException)
-    async def http_exception_handler(
-        request: Request, exc: StarletteHTTPException
-    ) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         request_id = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
         now_utc = datetime.now(UTC).isoformat()
 

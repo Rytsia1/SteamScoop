@@ -19,4 +19,3 @@ __all__ = [
     "commit_ingestion_page_transaction",
     "AnalyticsRepository",
 ]
-

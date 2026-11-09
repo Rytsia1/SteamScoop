@@ -48,4 +48,3 @@ class BaseRepository(Generic[ModelType]):
         self.session.delete(entity)
         self.session.commit()
         return True
-

@@ -153,12 +153,7 @@ class SteamClient:
             pages_fetched += 1
             yield page
 
-            if (
-                not page.has_more
-                or not page.cursor
-                or page.cursor == current_cursor
-            ):
+            if not page.has_more or not page.cursor or page.cursor == current_cursor:
                 break
 
             current_cursor = page.cursor
-

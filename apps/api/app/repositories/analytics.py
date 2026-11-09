@@ -113,4 +113,3 @@ class AnalyticsRepository(BaseRepository[GameAnalytic]):
         )
         created = self.create(analytic)
         return created, True
-

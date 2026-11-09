@@ -19,9 +19,7 @@ class ReviewRepository(BaseRepository[Review]):
     def __init__(self, session: Session) -> None:
         super().__init__(Review, session)
 
-    def get_by_steam_review_id(
-        self, game_id: uuid.UUID, steam_review_id: int
-    ) -> Review | None:
+    def get_by_steam_review_id(self, game_id: uuid.UUID, steam_review_id: int) -> Review | None:
         """Fetch a single review by the composite idempotency key (game_id, steam_review_id)."""
         stmt = select(Review).where(
             Review.game_id == game_id,

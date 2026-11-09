@@ -32,4 +32,3 @@ def decode_cursor(cursor_str: str) -> tuple[Any, uuid.UUID]:
         raise InvalidCursorError(
             message="The provided pagination cursor is invalid or malformed."
         ) from exc
-

@@ -93,4 +93,3 @@ class ReviewQueryParams(BaseModel):
         default="created_at_desc",
         description="Sort ordering",
     )
-

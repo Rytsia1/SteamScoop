@@ -81,9 +81,7 @@ class GameService:
             updated_at=game.updated_at,
         )
 
-    def search_games(
-        self, params: GameQueryParams
-    ) -> tuple[list[GameListItem], PaginationMeta]:
+    def search_games(self, params: GameQueryParams) -> tuple[list[GameListItem], PaginationMeta]:
         """Search and list catalog games with filtering and keyset pagination."""
         games, has_more, next_cursor = self.game_repo.search_catalog(
             q=params.q,
@@ -114,4 +112,3 @@ class GameService:
             next_cursor=next_cursor,
         )
         return items, pagination
-
