@@ -1,0 +1,59 @@
+{
+  "model_key": "steamscoop-absa-sentence-tfidf",
+  "version": "v1.0.0",
+  "task": "absa",
+  "framework": "scikit-learn",
+  "artifact_file": "model.joblib",
+  "artifact_checksum": "sha256:acb9d9507a728350b50ad5e3fa97d8c5d235a8e076cd6ba7b284a79d2a46f523",
+  "language_scope": [
+    "en"
+  ],
+  "label_schema": {
+    "aspects": [
+      "gameplay",
+      "story",
+      "graphics",
+      "audio",
+      "performance",
+      "content",
+      "multiplayer",
+      "monetization",
+      "price_value",
+      "support_updates",
+      "accessibility",
+      "other"
+    ],
+    "sentiments": [
+      "positive",
+      "negative",
+      "neutral"
+    ]
+  },
+  "config": {
+    "aspect_threshold": 0.5,
+    "sentiment_threshold": 0.35,
+    "c_regularization": 0.5,
+    "ngram_range": [
+      1,
+      2
+    ]
+  },
+  "metrics": {
+    "detection_micro_f1": 0.875,
+    "detection_macro_f1": 0.5556,
+    "sentiment_macro_f1": 0.3444,
+    "joint_micro_f1": 0.5
+  },
+  "release_gate": {
+    "status": "CANDIDATE",
+    "detection_micro_f1": 0.875,
+    "detection_macro_f1": 0.5556,
+    "sentiment_macro_f1": 0.3444,
+    "joint_macro_f1": 0.5,
+    "passed_gates": false,
+    "failures": [
+      "Aspect sentiment Macro F1 0.3444 is below target 0.75"
+    ]
+  },
+  "dataset_manifest_ref": "F:\\Folder dio\\Portofolio\\SteamScoop\\data\\benchmarks\\steamscoop_absa_v1\\dataset_manifest.json"
+}

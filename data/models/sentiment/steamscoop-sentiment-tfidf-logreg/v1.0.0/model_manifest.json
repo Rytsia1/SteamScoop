@@ -3,7 +3,7 @@
   "version": "v1.0.0",
   "task": "sentiment",
   "framework": "scikit-learn",
-  "created_at": "2026-11-09T16:31:13.619018+00:00",
+  "created_at": "2026-11-09T16:44:17.264994+00:00",
   "artifact_file": "model.joblib",
   "artifact_sha256": "96d1f55cb53db999e64dc5e877fb9883eaf0d4b55294e7b62ed239a975afc580",
   "release_status": "CANDIDATE",
@@ -97,11 +97,11 @@
     "actual_coverage": 0.0,
     "zero_leakage_verified": true,
     "gate_details": [
-      "FAILED: Macro-F1 0.6349 is below minimum threshold of 0.75",
+      "FAILED: Macro-F1 0.6349 is below minimum 0.75",
       "PASSED: Class 'positive' recall 0.6667 >= 0.60",
       "PASSED: Class 'negative' recall 0.6667 >= 0.60",
-      "FAILED: Class 'neutral' recall 0.5000 is below minimum 0.60",
-      "FAILED: Coverage rate 0.00% is below minimum 80.00%",
+      "FAILED: Class 'neutral' recall 0.5000 < 0.60",
+      "FAILED: Coverage rate 0.00% < 80.00%",
       "PASSED: Verified zero overlap of review IDs and duplicate groups across splits."
     ]
   },

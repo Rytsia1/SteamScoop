@@ -46,4 +46,3 @@ async def test_cannot_activate_unapproved_model() -> None:
             artifact_uri="models/test/model.joblib",
             activate=True,
         )
-

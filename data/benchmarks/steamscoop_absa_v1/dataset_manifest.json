@@ -1,0 +1,129 @@
+{
+  "dataset_id": "steamscoop_absa_v1",
+  "version": "v1.0.0",
+  "created_at": "2026-11-09T16:47:21.958337Z",
+  "description": "SteamScoop benchmark dataset with group-stratified leakage prevention.",
+  "splits": {
+    "train": {
+      "split_name": "train",
+      "sample_count": 52,
+      "group_count": 52,
+      "sha256_hash": "5a0f7971933d9f907c661b8dba99efb1e8d1f4e796b29eebf19023b0058e100e",
+      "label_distribution": {
+        "positive": 26,
+        "neutral": 8,
+        "negative": 18
+      },
+      "aspect_distribution": {
+        "gameplay": 7,
+        "story": 3,
+        "graphics": 6,
+        "audio": 3,
+        "performance": 5,
+        "content": 7,
+        "multiplayer": 5,
+        "monetization": 4,
+        "price_value": 6,
+        "support_updates": 4,
+        "accessibility": 8,
+        "other": 3
+      },
+      "language_distribution": {
+        "en": 52
+      },
+      "length_statistics": {
+        "mean_char_length": 106.4,
+        "p10_char_length": 40.0,
+        "p50_char_length": 118.0,
+        "p90_char_length": 140.0,
+        "max_char_length": 150.0,
+        "mean_word_length": 16.1,
+        "p50_word_length": 17.0
+      }
+    },
+    "validation": {
+      "split_name": "validation",
+      "sample_count": 12,
+      "group_count": 12,
+      "sha256_hash": "e5c31bed7607e4cbcefb5e08dd9dac445f140718856e8813464cdd2b70309187",
+      "label_distribution": {
+        "neutral": 2,
+        "positive": 6,
+        "negative": 4
+      },
+      "aspect_distribution": {
+        "story": 2,
+        "audio": 1,
+        "performance": 1,
+        "content": 3,
+        "monetization": 1,
+        "other": 2,
+        "support_updates": 2,
+        "price_value": 1
+      },
+      "language_distribution": {
+        "en": 12
+      },
+      "length_statistics": {
+        "mean_char_length": 107.2,
+        "p10_char_length": 41.0,
+        "p50_char_length": 123.0,
+        "p90_char_length": 139.0,
+        "max_char_length": 143.0,
+        "mean_word_length": 16.2,
+        "p50_word_length": 17.0
+      }
+    },
+    "test": {
+      "split_name": "test",
+      "sample_count": 10,
+      "group_count": 10,
+      "sha256_hash": "c6ee67a91ec35d3481c1811c5f8ff6d088f4c7af7778399e46e358905c9bc285",
+      "label_distribution": {
+        "positive": 5,
+        "negative": 3,
+        "neutral": 2
+      },
+      "aspect_distribution": {
+        "story": 3,
+        "graphics": 3,
+        "audio": 2,
+        "content": 1,
+        "other": 2,
+        "gameplay": 2,
+        "monetization": 1,
+        "performance": 1
+      },
+      "language_distribution": {
+        "en": 10
+      },
+      "length_statistics": {
+        "mean_char_length": 116.4,
+        "p10_char_length": 102.0,
+        "p50_char_length": 115.0,
+        "p90_char_length": 141.0,
+        "max_char_length": 141.0,
+        "mean_word_length": 17.1,
+        "p50_word_length": 18.0
+      }
+    }
+  },
+  "total_reviews": 74,
+  "total_unique_groups": 74,
+  "duplicate_rate": 0.0,
+  "preprocessing_version": "v1.0.0",
+  "quality_engine_version": "v1.0.0",
+  "deduplication_version": "v1.0.0",
+  "random_seed": 42,
+  "provenance": {
+    "games_count": 4,
+    "target_language": "en",
+    "filter_trainable_only": true
+  },
+  "licensing": {
+    "source": "Steam Community public user reviews (Valve Corporation)",
+    "license": "Publicly accessible player feedback collected via Steam API",
+    "privacy_notice": "Strictly excludes all SteamIDs, profile URLs, avatars, and player personal identification.",
+    "usage": "Internal benchmarking, model training, and analytical trend estimation."
+  }
+}
