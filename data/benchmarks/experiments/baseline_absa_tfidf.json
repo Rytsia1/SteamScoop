@@ -1,0 +1,41 @@
+{
+  "experiment_name": "baseline-absa-multilabel-tfidf",
+  "experiment_id": "exp-absa-001",
+  "task": "absa",
+  "dataset_version": "v1.0.0",
+  "dataset_manifest_path": "data/benchmarks/steamscoop_sentiment_v1/dataset_manifest.json",
+  "preprocessing_version": "v1.0.0",
+  "random_seed": 42,
+  "hyperparameters": {
+    "tfidf": {
+      "max_features": 8000,
+      "ngram_range": [
+        1,
+        2
+      ],
+      "min_df": 2,
+      "max_df": 0.95,
+      "sublinear_tf": true
+    },
+    "classifier": {
+      "classifier_type": "linear_svc",
+      "c_regularization": 0.5,
+      "class_weight": "balanced",
+      "max_iter": 1000,
+      "random_state": 42
+    },
+    "num_aspects": 12
+  },
+  "metrics_tracked": [
+    "macro_aspect_f1",
+    "micro_aspect_f1",
+    "aspect_polarity_accuracy"
+  ],
+  "acceptance_criteria": {
+    "min_macro_aspect_f1": 0.65
+  },
+  "metadata": {
+    "model_family": "classical_baseline",
+    "tier": "mvp_baseline"
+  }
+}

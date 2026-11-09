@@ -1,0 +1,29 @@
+{
+  "experiment_name": "baseline-topic-nmf",
+  "experiment_id": "exp-topic-001",
+  "task": "topic",
+  "dataset_version": "v1.0.0",
+  "dataset_manifest_path": "data/benchmarks/steamscoop_sentiment_v1/dataset_manifest.json",
+  "preprocessing_version": "v1.0.0",
+  "random_seed": 42,
+  "hyperparameters": {
+    "topic_model": {
+      "method": "nmf",
+      "num_topics": 8,
+      "max_features": 3000,
+      "random_state": 42
+    }
+  },
+  "metrics_tracked": [
+    "topic_diversity",
+    "npmi_coherence",
+    "mean_pairwise_jaccard"
+  ],
+  "acceptance_criteria": {
+    "min_topic_diversity": 0.7
+  },
+  "metadata": {
+    "model_family": "nmf_baseline",
+    "tier": "mvp_baseline"
+  }
+}

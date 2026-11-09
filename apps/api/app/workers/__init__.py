@@ -6,4 +6,3 @@ __all__ = [
     "celery_app",
     "ingest_game_reviews",
 ]
-

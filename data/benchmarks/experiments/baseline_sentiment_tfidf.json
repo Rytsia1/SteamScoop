@@ -1,0 +1,42 @@
+{
+  "experiment_name": "baseline-sentiment-tfidf-logreg",
+  "experiment_id": "exp-sent-001",
+  "task": "sentiment",
+  "dataset_version": "v1.0.0",
+  "dataset_manifest_path": "data/benchmarks/steamscoop_sentiment_v1/dataset_manifest.json",
+  "preprocessing_version": "v1.0.0",
+  "random_seed": 42,
+  "hyperparameters": {
+    "tfidf": {
+      "max_features": 5000,
+      "ngram_range": [
+        1,
+        2
+      ],
+      "min_df": 2,
+      "max_df": 0.95,
+      "sublinear_tf": true
+    },
+    "classifier": {
+      "classifier_type": "logistic_regression",
+      "c_regularization": 1.0,
+      "class_weight": "balanced",
+      "max_iter": 1000,
+      "random_state": 42
+    }
+  },
+  "metrics_tracked": [
+    "macro_f1",
+    "weighted_f1",
+    "accuracy",
+    "per_class_f1"
+  ],
+  "acceptance_criteria": {
+    "min_macro_f1": 0.75,
+    "min_accuracy": 0.75
+  },
+  "metadata": {
+    "model_family": "classical_baseline",
+    "tier": "mvp_baseline"
+  }
+}
