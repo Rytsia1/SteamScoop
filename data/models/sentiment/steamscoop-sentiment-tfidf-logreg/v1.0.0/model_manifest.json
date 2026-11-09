@@ -1,0 +1,159 @@
+{
+  "model_key": "steamscoop-sentiment-tfidf-logreg",
+  "version": "v1.0.0",
+  "task": "sentiment",
+  "framework": "scikit-learn",
+  "created_at": "2026-11-09T16:31:13.619018+00:00",
+  "artifact_file": "model.joblib",
+  "artifact_sha256": "96d1f55cb53db999e64dc5e877fb9883eaf0d4b55294e7b62ed239a975afc580",
+  "release_status": "CANDIDATE",
+  "dataset_version": "v1.0.0",
+  "dataset_provenance": {
+    "games_count": 12,
+    "target_language": "en",
+    "filter_trainable_only": true
+  },
+  "metrics": {
+    "macro_f1": 0.6349,
+    "weighted_f1": 0.631,
+    "accuracy": 0.625,
+    "brier_score": 0.6611,
+    "coverage_rate": 0.0,
+    "effective_macro_f1": 0.0,
+    "class_metrics": {
+      "positive": {
+        "precision": 0.5,
+        "recall": 0.6667,
+        "f1_score": 0.5714,
+        "support": 3
+      },
+      "negative": {
+        "precision": 0.6667,
+        "recall": 0.6667,
+        "f1_score": 0.6667,
+        "support": 3
+      },
+      "neutral": {
+        "precision": 1.0,
+        "recall": 0.5,
+        "f1_score": 0.6667,
+        "support": 2
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "positive",
+        "negative",
+        "neutral"
+      ],
+      "matrix": [
+        [
+          2,
+          1,
+          0
+        ],
+        [
+          1,
+          2,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ]
+      ],
+      "normalized_matrix": [
+        [
+          0.6667,
+          0.3333,
+          0.0
+        ],
+        [
+          0.3333,
+          0.6667,
+          0.0
+        ],
+        [
+          0.5,
+          0.0,
+          0.5
+        ]
+      ]
+    }
+  },
+  "release_gate": {
+    "passed": false,
+    "status": "CANDIDATE",
+    "min_macro_f1_threshold": 0.75,
+    "actual_macro_f1": 0.6349,
+    "min_class_recall_threshold": 0.6,
+    "actual_class_recalls": {
+      "positive": 0.6667,
+      "negative": 0.6667,
+      "neutral": 0.5
+    },
+    "min_coverage_threshold": 0.8,
+    "actual_coverage": 0.0,
+    "zero_leakage_verified": true,
+    "gate_details": [
+      "FAILED: Macro-F1 0.6349 is below minimum threshold of 0.75",
+      "PASSED: Class 'positive' recall 0.6667 >= 0.60",
+      "PASSED: Class 'negative' recall 0.6667 >= 0.60",
+      "FAILED: Class 'neutral' recall 0.5000 is below minimum 0.60",
+      "FAILED: Coverage rate 0.00% is below minimum 80.00%",
+      "PASSED: Verified zero overlap of review IDs and duplicate groups across splits."
+    ]
+  },
+  "slice_performance": [
+    {
+      "slice_name": "length_medium (6-25 words)",
+      "sample_count": 7,
+      "macro_f1": 0.7111,
+      "accuracy": 0.7143,
+      "notes": "Text length partition"
+    },
+    {
+      "slice_name": "length_short (<=5 words)",
+      "sample_count": 1,
+      "macro_f1": 0.0,
+      "accuracy": 0.0,
+      "notes": "Text length partition"
+    },
+    {
+      "slice_name": "language_en",
+      "sample_count": 8,
+      "macro_f1": 0.6349,
+      "accuracy": 0.625,
+      "notes": "Language slice"
+    },
+    {
+      "slice_name": "steam_signal_concordant (voted_up aligns with text)",
+      "sample_count": 6,
+      "macro_f1": 0.4444,
+      "accuracy": 0.6667,
+      "notes": "Evaluation of steam voted_up alignment with text sentiment"
+    },
+    {
+      "slice_name": "steam_signal_discordant (sarcasm / mixed / cautious)",
+      "sample_count": 2,
+      "macro_f1": 0.2222,
+      "accuracy": 0.5,
+      "notes": "Evaluation of steam voted_up alignment with text sentiment"
+    },
+    {
+      "slice_name": "temporal_earlier_reviews",
+      "sample_count": 4,
+      "macro_f1": 0.7778,
+      "accuracy": 0.75,
+      "notes": "Chronological temporal slice to test drift robustness"
+    },
+    {
+      "slice_name": "temporal_later_reviews",
+      "sample_count": 4,
+      "macro_f1": 0.3889,
+      "accuracy": 0.5,
+      "notes": "Chronological temporal slice to test drift robustness"
+    }
+  ]
+}

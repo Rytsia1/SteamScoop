@@ -91,6 +91,7 @@ out/
 *.safetensors
 *.h5
 *.ckpt
+*.joblib
 models/checkpoints/
 models/weights/
 checkpoints/

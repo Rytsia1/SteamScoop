@@ -1,122 +1,123 @@
 {
   "dataset_id": "steamscoop-sentiment-benchmark-v1",
   "version": "v1.0.0",
-  "created_at": "2026-11-09T16:00:29.523145Z",
+  "created_at": "2026-11-09T16:24:53.763202Z",
   "description": "SteamScoop benchmark dataset with group-stratified leakage prevention.",
   "splits": {
     "train": {
       "split_name": "train",
-      "sample_count": 24,
-      "group_count": 23,
-      "sha256_hash": "2cce8e2edf5e80f16a66a4377888e49984ee6e5985c4b330d516d9e11dedf26e",
+      "sample_count": 45,
+      "group_count": 43,
+      "sha256_hash": "4eff9b85ba548e0a60e3e2b12feb94627b21251c9a89b9c8edd955a1035c1ffd",
       "label_distribution": {
-        "positive": 10,
-        "negative": 9,
-        "neutral": 5
+        "positive": 18,
+        "negative": 17,
+        "neutral": 10
       },
       "aspect_distribution": {
-        "audio": 2,
-        "performance": 5,
-        "support_updates": 4,
-        "price_value": 5,
-        "content": 4,
-        "monetization": 1,
-        "gameplay": 4,
-        "story": 3,
+        "gameplay": 14,
+        "audio": 7,
+        "price_value": 6,
+        "content": 7,
+        "monetization": 3,
+        "story": 6,
         "other": 1,
-        "multiplayer": 2,
-        "accessibility": 1,
-        "graphics": 2
+        "graphics": 8,
+        "support_updates": 3,
+        "multiplayer": 8,
+        "performance": 5
       },
       "language_distribution": {
-        "en": 24
+        "en": 45
       },
       "length_statistics": {
-        "mean_char_length": 102.7,
-        "p10_char_length": 29.0,
-        "p50_char_length": 112.0,
-        "p90_char_length": 136.0,
-        "max_char_length": 148.0,
-        "mean_word_length": 16.7,
+        "mean_char_length": 109.0,
+        "p10_char_length": 60.0,
+        "p50_char_length": 119.0,
+        "p90_char_length": 142.0,
+        "max_char_length": 150.0,
+        "mean_word_length": 17.3,
         "p50_word_length": 18.0
       }
     },
     "validation": {
       "split_name": "validation",
-      "sample_count": 5,
-      "group_count": 5,
-      "sha256_hash": "a35454fe10cdab98ce55bf437c2f2aa6fc564711c9753f178f3504cf75c5fbbe",
+      "sample_count": 10,
+      "group_count": 9,
+      "sha256_hash": "a5751326c75d93104720382ca56044ecbcbaf1de5bdfce2bce3e1caac4daa2ad",
       "label_distribution": {
-        "positive": 2,
-        "negative": 2,
-        "neutral": 1
+        "positive": 5,
+        "negative": 3,
+        "neutral": 2
       },
       "aspect_distribution": {
-        "graphics": 2,
-        "story": 2,
-        "content": 1,
-        "accessibility": 1,
-        "gameplay": 2,
-        "price_value": 1,
-        "monetization": 1
+        "accessibility": 2,
+        "support_updates": 3,
+        "performance": 2,
+        "gameplay": 3,
+        "price_value": 2
       },
       "language_distribution": {
-        "en": 5
+        "en": 10
       },
       "length_statistics": {
-        "mean_char_length": 132.2,
-        "p10_char_length": 119.0,
-        "p50_char_length": 129.0,
-        "p90_char_length": 150.0,
-        "max_char_length": 150.0,
-        "mean_word_length": 22.4,
-        "p50_word_length": 21.0
+        "mean_char_length": 95.0,
+        "p10_char_length": 29.0,
+        "p50_char_length": 105.0,
+        "p90_char_length": 136.0,
+        "max_char_length": 136.0,
+        "mean_word_length": 15.0,
+        "p50_word_length": 17.0
       }
     },
     "test": {
       "split_name": "test",
-      "sample_count": 7,
-      "group_count": 5,
-      "sha256_hash": "df20581ccd37b4888acda5c8955b5ba743b4b964c52fa2f31a8969f2cb022629",
+      "sample_count": 8,
+      "group_count": 8,
+      "sha256_hash": "762c97cdccd8a0477487dd615f6feadc0f0f6f04e83e1a5b4a14d6b20b56002f",
       "label_distribution": {
-        "positive": 2,
-        "negative": 4,
-        "neutral": 1
+        "positive": 3,
+        "negative": 3,
+        "neutral": 2
       },
       "aspect_distribution": {
-        "gameplay": 2,
+        "graphics": 2,
+        "story": 2,
+        "content": 2,
         "performance": 2,
-        "multiplayer": 3
+        "support_updates": 1,
+        "gameplay": 3,
+        "price_value": 1
       },
       "language_distribution": {
-        "en": 7
+        "en": 8
       },
       "length_statistics": {
-        "mean_char_length": 76.7,
-        "p10_char_length": 11.0,
-        "p50_char_length": 60.0,
-        "p90_char_length": 124.0,
-        "max_char_length": 124.0,
-        "mean_word_length": 12.4,
-        "p50_word_length": 10.0
+        "mean_char_length": 107.6,
+        "p10_char_length": 13.0,
+        "p50_char_length": 117.0,
+        "p90_char_length": 150.0,
+        "max_char_length": 150.0,
+        "mean_word_length": 16.8,
+        "p50_word_length": 19.0
       }
     }
   },
-  "total_reviews": 36,
-  "total_unique_groups": 33,
-  "duplicate_rate": 0.0833,
+  "total_reviews": 63,
+  "total_unique_groups": 60,
+  "duplicate_rate": 0.0476,
   "preprocessing_version": "v1.0.0",
   "quality_engine_version": "v1.0.0",
   "deduplication_version": "v1.0.0",
   "random_seed": 42,
   "provenance": {
-    "games_count": 7,
+    "games_count": 12,
     "target_language": "en",
     "filter_trainable_only": true
   },
   "licensing": {
     "source": "Steam Community public user reviews (Valve Corporation)",
-    "license": "Publicly accessible player feedback collected via Steam API for non-commercial research",
+    "license": "Publicly accessible player feedback collected via Steam API",
     "privacy_notice": "Strictly excludes all SteamIDs, profile URLs, avatars, and player personal identification.",
     "usage": "Internal benchmarking, model training, and analytical trend estimation."
   }
