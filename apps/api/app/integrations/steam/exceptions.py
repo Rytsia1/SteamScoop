@@ -79,3 +79,4 @@ class SteamMalformedResponseError(SteamIntegrationError):
     ) -> None:
         super().__init__(message, status_code=502)
         self.details = details
+
