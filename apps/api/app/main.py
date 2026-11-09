@@ -8,10 +8,12 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.v1.router import api_v1_router
 from app.core.config import get_settings
-from app.core.logging import setup_logging
+from app.core.exceptions import DomainError
+from app.core.logging import correlation_id_ctx, setup_logging
 from app.schemas.common import ErrorDetail, ErrorInfo, MetaEnvelope, ResponseEnvelope
 
 logger = logging.getLogger("steamscoop.api")
@@ -58,9 +60,13 @@ def create_application() -> FastAPI:
             request_id = f"req_{uuid.uuid4().hex[:12]}"
 
         request.state.request_id = request_id
-        response = await call_next(request)
-        response.headers["X-Request-ID"] = request_id
-        return response
+        token = correlation_id_ctx.set(request_id)
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-ID"] = request_id
+            return response
+        finally:
+            correlation_id_ctx.reset(token)
 
     # Middleware: CORS
     app.add_middleware(
@@ -70,6 +76,71 @@ def create_application() -> FastAPI:
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
+
+    # Exception Handler: Domain Errors
+    @app.exception_handler(DomainError)
+    async def domain_exception_handler(
+        request: Request, exc: DomainError
+    ) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
+        now_utc = datetime.now(UTC).isoformat()
+
+        details = None
+        if exc.details:
+            details = [
+                ErrorDetail(
+                    field=str(item.get("field")) if item.get("field") is not None else None,
+                    issue=str(item.get("issue", "Domain error")),
+                )
+                for item in exc.details
+            ]
+
+        error_envelope = ResponseEnvelope[None](
+            data=None,
+            error=ErrorInfo(
+                code=exc.code,
+                message=exc.message,
+                details=details,
+                request_id=request_id,
+            ),
+            meta=MetaEnvelope(request_id=request_id, timestamp=now_utc),
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_envelope.model_dump(),
+        )
+
+    # Exception Handler: Starlette HTTP Exceptions (404, 405, etc.)
+    @app.exception_handler(StarletteHTTPException)
+    async def http_exception_handler(
+        request: Request, exc: StarletteHTTPException
+    ) -> JSONResponse:
+        request_id = getattr(request.state, "request_id", f"req_{uuid.uuid4().hex[:12]}")
+        now_utc = datetime.now(UTC).isoformat()
+
+        code_map = {
+            404: "RESOURCE_NOT_FOUND",
+            405: "METHOD_NOT_ALLOWED",
+            401: "UNAUTHORIZED",
+            403: "FORBIDDEN",
+            429: "RATE_LIMITED",
+        }
+        code = code_map.get(exc.status_code, "HTTP_ERROR")
+
+        error_envelope = ResponseEnvelope[None](
+            data=None,
+            error=ErrorInfo(
+                code=code,
+                message=str(exc.detail) if exc.detail else "An HTTP error occurred.",
+                details=None,
+                request_id=request_id,
+            ),
+            meta=MetaEnvelope(request_id=request_id, timestamp=now_utc),
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_envelope.model_dump(),
+        )
 
     # Global Exception Handler: Validation Errors
     @app.exception_handler(RequestValidationError)
