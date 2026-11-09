@@ -1,0 +1,297 @@
+{
+  "model_key": "steamscoop-topic-nmf-1091500",
+  "version": "v1.0.0",
+  "task": "topic",
+  "framework": "scikit-learn",
+  "artifact_file": "model.joblib",
+  "artifact_checksum": "sha256:89cc7ffd6c03233b36c6c4d4ebe2cce3bd7da9931c5967a8e73c2f1914654cbd",
+  "steam_app_id": 1091500,
+  "corpus_size": 40,
+  "config": {
+    "num_topics": 4,
+    "outlier_threshold": 0.08,
+    "random_seed": 42
+  },
+  "metrics": {
+    "num_topics": 4,
+    "topic_diversity": 1.0,
+    "mean_pairwise_jaccard": 0.0,
+    "npmi_coherence": 0.4286,
+    "outlier_count": 9,
+    "outlier_rate": 0.225,
+    "topic_size_entropy": 1.8284,
+    "stability_score": 1.0
+  },
+  "topics": [
+    {
+      "topic_id": 0,
+      "topic_key": "steamscoop-topic-nmf-1091500_topic_0",
+      "label": "Audio Design, Radio Stations & Original Soundtrack",
+      "description": "Player praise and analysis regarding the dynamic combat soundtrack, in-game radio stations, voice acting performances, and audio mixing.",
+      "keywords": [
+        "absolute",
+        "masterpiece",
+        "adrenaline pumping",
+        "absolute masterpiece",
+        "adrenaline",
+        "soundtrack absolute",
+        "soundtrack",
+        "tracks adrenaline",
+        "tracks",
+        "perfectly"
+      ],
+      "representative_terms": [
+        {
+          "term": "absolute",
+          "weight": 0.3044
+        },
+        {
+          "term": "masterpiece",
+          "weight": 0.2824
+        },
+        {
+          "term": "adrenaline pumping",
+          "weight": 0.2561
+        },
+        {
+          "term": "absolute masterpiece",
+          "weight": 0.2561
+        },
+        {
+          "term": "adrenaline",
+          "weight": 0.2561
+        },
+        {
+          "term": "soundtrack absolute",
+          "weight": 0.2561
+        },
+        {
+          "term": "soundtrack",
+          "weight": 0.2561
+        },
+        {
+          "term": "tracks adrenaline",
+          "weight": 0.2561
+        },
+        {
+          "term": "tracks",
+          "weight": 0.2561
+        },
+        {
+          "term": "perfectly",
+          "weight": 0.2561
+        }
+      ],
+      "representative_reviews": [
+        "The soundtrack is an absolute masterpiece. The radio stations perfectly capture the dystopian vibe and combat tracks get",
+        "Absolute garbage. Do not buy this trash.",
+        "The original soundtrack is an absolute masterpiece. Combat tracks get your adrenaline pumping, and ambient radio music s"
+      ],
+      "doc_count": 3,
+      "is_outlier": false
+    },
+    {
+      "topic_id": 1,
+      "topic_key": "steamscoop-topic-nmf-1091500_topic_1",
+      "label": "Technical Stability, Bugs & Performance Optimization",
+      "description": "Discussion of frame rates, technical glitches, stability patches, crash issues, and PC hardware performance.",
+      "keywords": [
+        "fps",
+        "stuttering",
+        "zero",
+        "zero stuttering",
+        "runs",
+        "settings",
+        "crashes",
+        "flawlessly",
+        "ultra settings",
+        "settings zero"
+      ],
+      "representative_terms": [
+        {
+          "term": "fps",
+          "weight": 0.3453
+        },
+        {
+          "term": "stuttering",
+          "weight": 0.2958
+        },
+        {
+          "term": "zero",
+          "weight": 0.2501
+        },
+        {
+          "term": "zero stuttering",
+          "weight": 0.2474
+        },
+        {
+          "term": "runs",
+          "weight": 0.2474
+        },
+        {
+          "term": "settings",
+          "weight": 0.2474
+        },
+        {
+          "term": "crashes",
+          "weight": 0.2164
+        },
+        {
+          "term": "flawlessly",
+          "weight": 0.1497
+        },
+        {
+          "term": "ultra settings",
+          "weight": 0.1483
+        },
+        {
+          "term": "settings zero",
+          "weight": 0.1483
+        }
+      ],
+      "representative_reviews": [
+        "Solid 120 FPS on high settings after the 2.0 overhaul. DLSS 3 frame generation runs flawlessly with zero stuttering.",
+        "Constant crashes to desktop every 20 minutes. Game drops from 60 FPS down to 14 FPS in crowded areas. Unplayable stutter",
+        "Runs buttery smooth at locked 120 FPS on ultra settings with zero stuttering or crashes."
+      ],
+      "doc_count": 6,
+      "is_outlier": false
+    },
+    {
+      "topic_id": 2,
+      "topic_key": "steamscoop-topic-nmf-1091500_topic_2",
+      "label": "Narrative Depth, Character Writing & Expansion Content",
+      "description": "Appraisal of storyline pacing, emotional character arcs (V, Johnny Silverhand, Judy, Panam), Phantom Liberty expansion, and quest writing quality.",
+      "keywords": [
+        "ten",
+        "character",
+        "emotional",
+        "character writing",
+        "writing",
+        "liberty",
+        "phantom liberty",
+        "phantom",
+        "breathtaking",
+        "minutes"
+      ],
+      "representative_terms": [
+        {
+          "term": "ten",
+          "weight": 0.233
+        },
+        {
+          "term": "character",
+          "weight": 0.2198
+        },
+        {
+          "term": "emotional",
+          "weight": 0.1834
+        },
+        {
+          "term": "character writing",
+          "weight": 0.1834
+        },
+        {
+          "term": "writing",
+          "weight": 0.169
+        },
+        {
+          "term": "liberty",
+          "weight": 0.1444
+        },
+        {
+          "term": "phantom liberty",
+          "weight": 0.1444
+        },
+        {
+          "term": "phantom",
+          "weight": 0.1444
+        },
+        {
+          "term": "breathtaking",
+          "weight": 0.1387
+        },
+        {
+          "term": "minutes",
+          "weight": 0.1369
+        }
+      ],
+      "representative_reviews": [
+        "Phantom Liberty expansion is breathtaking. Idris Elba gives a standout performance, and Dogtown feels incredibly dense a",
+        "The story and visuals are genuinely great, but the terrible performance and bugs make it impossible to give a full recom",
+        "Good narrative, mediocre driving physics. Not a terrible game anymore, but far from perfection."
+      ],
+      "doc_count": 13,
+      "is_outlier": false
+    },
+    {
+      "topic_id": 3,
+      "topic_key": "steamscoop-topic-nmf-1091500_topic_3",
+      "label": "Combat Mechanics, Gunplay & Build Progression",
+      "description": "Feedback on gunplay feel, melee combat, cyberware augmentations, skill trees, and build diversity.",
+      "keywords": [
+        "combat",
+        "combat mechanics",
+        "mechanics",
+        "gunplay",
+        "however",
+        "fantastic",
+        "constant",
+        "never",
+        "constantly",
+        "constantly story"
+      ],
+      "representative_terms": [
+        {
+          "term": "combat",
+          "weight": 0.2484
+        },
+        {
+          "term": "combat mechanics",
+          "weight": 0.2396
+        },
+        {
+          "term": "mechanics",
+          "weight": 0.2396
+        },
+        {
+          "term": "gunplay",
+          "weight": 0.209
+        },
+        {
+          "term": "however",
+          "weight": 0.1441
+        },
+        {
+          "term": "fantastic",
+          "weight": 0.119
+        },
+        {
+          "term": "constant",
+          "weight": 0.1083
+        },
+        {
+          "term": "never",
+          "weight": 0.1033
+        },
+        {
+          "term": "constantly",
+          "weight": 0.1007
+        },
+        {
+          "term": "constantly story",
+          "weight": 0.1007
+        }
+      ],
+      "representative_reviews": [
+        "Combat mechanics feel crisp and fluid. Hacking enemies from the shadows never gets old. Great gunplay and weapon variety",
+        "The AI is completely brain dead. Police spawn directly behind your back out of thin air. Combat feels empty and hollow.",
+        "I will never recommend this game to anyone until they rebuild the physics engine from scratch."
+      ],
+      "doc_count": 9,
+      "is_outlier": false
+    }
+  ],
+  "topics_count": 4,
+  "curated": true
+}
