@@ -10,13 +10,16 @@ from fastapi import APIRouter, Depends, Path, Query, status
 from app.api.deps import get_admin_service, get_request_id, require_role
 from app.models.workspace import User
 from app.schemas.admin import (
+    AdminAuditLogResponse,
     AdminGameCreateRequest,
     AdminGameResponse,
     AdminGameUpdateRequest,
     AdminIngestionJobCreateRequest,
     AdminIngestionJobResponse,
+    AdminMetadataRefreshResponse,
     AdminModelActivateResponse,
     AdminModelResponse,
+    AdminOperationalErrorsResponse,
     AdminPipelineRunResponse,
 )
 from app.schemas.common import MetaEnvelope, ResponseEnvelope
@@ -62,11 +65,11 @@ async def list_admin_games(
 )
 async def create_admin_game(
     request: AdminGameCreateRequest,
-    _admin: User = Depends(require_role("admin")),
+    admin_user: User = Depends(require_role("admin")),
     admin_service: AdminService = Depends(get_admin_service),
     request_id: str = Depends(get_request_id),
 ) -> ResponseEnvelope[AdminGameResponse]:
-    game = admin_service.create_catalog_game(request)
+    game = admin_service.create_catalog_game(request, user_id=admin_user.id)
     now_utc = datetime.now(UTC).isoformat()
 
     return ResponseEnvelope[AdminGameResponse](
@@ -88,15 +91,41 @@ async def create_admin_game(
 async def update_admin_game(
     request: AdminGameUpdateRequest,
     game_id: uuid.UUID = Path(..., description="Target game UUID"),
-    _admin: User = Depends(require_role("admin")),
+    admin_user: User = Depends(require_role("admin")),
     admin_service: AdminService = Depends(get_admin_service),
     request_id: str = Depends(get_request_id),
 ) -> ResponseEnvelope[AdminGameResponse]:
-    game = admin_service.update_catalog_game(game_id, request)
+    game = admin_service.update_catalog_game(game_id, request, user_id=admin_user.id)
     now_utc = datetime.now(UTC).isoformat()
 
     return ResponseEnvelope[AdminGameResponse](
         data=AdminGameResponse.model_validate(game),
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+@router.post(
+    "/admin/games/{game_id}/metadata-refresh",
+    response_model=ResponseEnvelope[AdminMetadataRefreshResponse],
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Queue Game Metadata Refresh",
+    description="Queue a background refresh of Steam store metadata and media assets.",
+)
+async def refresh_game_metadata(
+    game_id: uuid.UUID = Path(..., description="Target game UUID"),
+    admin_user: User = Depends(require_role("admin")),
+    admin_service: AdminService = Depends(get_admin_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[AdminMetadataRefreshResponse]:
+    result = admin_service.queue_metadata_refresh(game_id, user_id=admin_user.id)
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[AdminMetadataRefreshResponse](
+        data=AdminMetadataRefreshResponse(**result),
         error=None,
         meta=MetaEnvelope(
             request_id=request_id,
@@ -223,11 +252,11 @@ async def retry_ingestion_job(
 )
 async def cancel_ingestion_job(
     job_id: uuid.UUID = Path(..., description="Ingestion job UUID"),
-    _admin: User = Depends(require_role("admin")),
+    admin_user: User = Depends(require_role("admin")),
     admin_service: AdminService = Depends(get_admin_service),
     request_id: str = Depends(get_request_id),
 ) -> ResponseEnvelope[AdminIngestionJobResponse]:
-    job = admin_service.cancel_ingestion_job(job_id)
+    job = admin_service.cancel_ingestion_job(job_id, user_id=admin_user.id)
     now_utc = datetime.now(UTC).isoformat()
 
     return ResponseEnvelope[AdminIngestionJobResponse](
@@ -329,11 +358,11 @@ async def list_models(
 )
 async def activate_model(
     model_id: uuid.UUID = Path(..., description="Target model UUID"),
-    _admin: User = Depends(require_role("admin")),
+    admin_user: User = Depends(require_role("admin")),
     admin_service: AdminService = Depends(get_admin_service),
     request_id: str = Depends(get_request_id),
 ) -> ResponseEnvelope[AdminModelActivateResponse]:
-    model = admin_service.activate_model(model_id)
+    model = admin_service.activate_model(model_id, user_id=admin_user.id)
     now_utc = datetime.now(UTC).isoformat()
     msg = (
         f"Model version '{model.version}' ({model.model_key}) "
@@ -346,6 +375,71 @@ async def activate_model(
             task=model.task,
             is_active=model.is_active,
             message=msg,
+        ),
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+# Audit Logs & Diagnostics
+@router.get(
+    "/admin/audit-logs",
+    response_model=ResponseEnvelope[list[AdminAuditLogResponse]],
+    summary="List Security & Administrative Audit Logs",
+    description="Retrieve recorded security events, catalog mutations, and model activations.",
+)
+async def list_audit_logs(
+    limit: int = Query(default=50, ge=1, le=100),
+    action: str | None = Query(default=None),
+    resource_type: str | None = Query(default=None),
+    _admin: User = Depends(require_role("admin")),
+    admin_service: AdminService = Depends(get_admin_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[list[AdminAuditLogResponse]]:
+    logs = admin_service.list_audit_logs(limit=limit, action=action, resource_type=resource_type)
+    data = [AdminAuditLogResponse.model_validate(log) for log in logs]
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[list[AdminAuditLogResponse]](
+        data=data,
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+@router.get(
+    "/admin/operational-errors",
+    response_model=ResponseEnvelope[AdminOperationalErrorsResponse],
+    summary="List Recent Operational Failures",
+    description=(
+        "Retrieve aggregated failures and diagnostic errors from collection "
+        "and inference pipelines."
+    ),
+)
+async def get_operational_errors(
+    limit: int = Query(default=50, ge=1, le=100),
+    _admin: User = Depends(require_role("admin")),
+    admin_service: AdminService = Depends(get_admin_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[AdminOperationalErrorsResponse]:
+    error_data = admin_service.get_operational_errors(limit=limit)
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[AdminOperationalErrorsResponse](
+        data=AdminOperationalErrorsResponse(
+            failed_ingestion_jobs=[
+                AdminIngestionJobResponse.from_model(j) for j in error_data["failed_ingestion_jobs"]
+            ],
+            failed_pipeline_runs=[
+                AdminPipelineRunResponse.from_model(r) for r in error_data["failed_pipeline_runs"]
+            ],
+            total_failures=error_data["total_failures"],
         ),
         error=None,
         meta=MetaEnvelope(

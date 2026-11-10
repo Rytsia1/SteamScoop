@@ -32,6 +32,35 @@ export class ApiError extends Error {
 
 const DEFAULT_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || "/api/v1";
 
+let currentAuthToken: string | null = null;
+
+export function setAuthToken(token: string | null): void {
+  currentAuthToken = token;
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      if (token) {
+        window.localStorage.setItem("steamscoop_auth_token", token);
+      } else {
+        window.localStorage.removeItem("steamscoop_auth_token");
+      }
+    }
+  } catch {
+    // LocalStorage unavailable in certain environments
+  }
+}
+
+export function getAuthToken(): string | null {
+  if (currentAuthToken) return currentAuthToken;
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      return window.localStorage.getItem("steamscoop_auth_token");
+    }
+  } catch {
+    // Fall through
+  }
+  return null;
+}
+
 export interface ApiClientOptions extends RequestInit {
   params?: Record<string, string | number | boolean | null | undefined>;
 }
@@ -68,13 +97,28 @@ export async function apiClientWithMeta<T>(
   const { params, ...fetchOptions } = options || {};
   const url = buildUrl(endpoint, params);
 
+  const token = getAuthToken();
+  const authHeaders: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+
   const response = await fetch(url, {
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders,
       ...(fetchOptions?.headers || {}),
     },
     ...fetchOptions,
   });
+
+  if (response.status === 204) {
+    return {
+      data: null as unknown as T,
+      meta: {
+        request_id: response.headers?.get?.("x-request-id") || "",
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
 
   const retryAfterHeader = response.headers?.get?.("Retry-After");
   const retryAfter = retryAfterHeader ? parseInt(retryAfterHeader, 10) : null;

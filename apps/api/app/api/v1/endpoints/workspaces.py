@@ -16,8 +16,10 @@ from app.models.workspace import User
 from app.schemas.common import MetaEnvelope, ResponseEnvelope
 from app.schemas.workspace import (
     ProjectAddGameRequest,
+    ProjectAddMemberRequest,
     ProjectCreateRequest,
     ProjectGameItem,
+    ProjectMemberItem,
     ProjectResponse,
     ProjectUpdateRequest,
     SavedAnalysisCreateRequest,
@@ -420,3 +422,108 @@ async def list_snapshots(
             timestamp=now_utc,
         ),
     )
+
+
+@router.get(
+    "/projects/{project_id}/analyses/{analysis_id}/snapshots/{snapshot_id}",
+    response_model=ResponseEnvelope[SnapshotResponse],
+    summary="Get Analysis Snapshot Detail",
+    description="Retrieve full immutable reproducibility snapshot for inspection.",
+)
+async def get_snapshot(
+    project_id: uuid.UUID = Path(..., description="Project workspace UUID"),
+    analysis_id: uuid.UUID = Path(..., description="Saved analysis UUID"),
+    snapshot_id: uuid.UUID = Path(..., description="Snapshot UUID"),
+    current_user: User = Depends(get_current_active_user),
+    workspace_service: WorkspaceService = Depends(get_workspace_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[SnapshotResponse]:
+    snapshot = workspace_service.get_snapshot(
+        user=current_user,
+        project_id=project_id,
+        analysis_id=analysis_id,
+        snapshot_id=snapshot_id,
+    )
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[SnapshotResponse](
+        data=snapshot,
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+# Project Collaborators & Permissions
+@router.get(
+    "/projects/{project_id}/members",
+    response_model=ResponseEnvelope[list[ProjectMemberItem]],
+    summary="List Project Collaborators",
+    description="Retrieve all members and assigned project roles (owner, editor, viewer).",
+)
+async def list_project_members(
+    project_id: uuid.UUID = Path(..., description="Project workspace UUID"),
+    current_user: User = Depends(get_current_active_user),
+    workspace_service: WorkspaceService = Depends(get_workspace_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[list[ProjectMemberItem]]:
+    members = workspace_service.list_project_members(user=current_user, project_id=project_id)
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[list[ProjectMemberItem]](
+        data=members,
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+@router.post(
+    "/projects/{project_id}/members",
+    response_model=ResponseEnvelope[ProjectMemberItem],
+    status_code=status.HTTP_201_CREATED,
+    summary="Invite or Add Project Collaborator",
+    description="Grant project permissions to a collaborator. Owner-only operation.",
+)
+async def add_project_member(
+    request: ProjectAddMemberRequest,
+    project_id: uuid.UUID = Path(..., description="Project workspace UUID"),
+    current_user: User = Depends(get_current_active_user),
+    workspace_service: WorkspaceService = Depends(get_workspace_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[ProjectMemberItem]:
+    member = workspace_service.add_project_member(
+        user=current_user, project_id=project_id, req=request
+    )
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[ProjectMemberItem](
+        data=member,
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+@router.delete(
+    "/projects/{project_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove Project Collaborator",
+    description="Revoke collaborator access from research project. Owner or self only.",
+)
+async def remove_project_member(
+    project_id: uuid.UUID = Path(..., description="Project workspace UUID"),
+    user_id: uuid.UUID = Path(..., description="Collaborator user UUID"),
+    current_user: User = Depends(get_current_active_user),
+    workspace_service: WorkspaceService = Depends(get_workspace_service),
+) -> Response:
+    workspace_service.remove_project_member(
+        user=current_user, project_id=project_id, target_user_id=user_id
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

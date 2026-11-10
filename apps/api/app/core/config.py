@@ -62,6 +62,15 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "development-secret-key-do-not-use-in-production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
 
+    # Data Exports Configuration
+    EXPORT_STORAGE_PATH: str = "storage/exports"
+    EXPORT_DEFAULT_TTL_DAYS: int = 7
+    EXPORT_MAX_FILE_SIZE_BYTES: int = 50 * 1024 * 1024  # 50 MB
+    EXPORT_MAX_ACTIVE_PER_USER: int = 3
+    EXPORT_DEFAULT_ROW_LIMIT: int = 10000
+    EXPORT_RESEARCHER_ROW_LIMIT: int = 50000
+    EXPORT_ADMIN_ROW_LIMIT: int = 100000
+
 
 @lru_cache
 def get_settings() -> Settings:

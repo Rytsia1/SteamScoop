@@ -2,16 +2,33 @@ import React, { useState } from "react";
 import { Link } from "../router/Router";
 import { useRouter } from "../router/RouterContext";
 import { ROUTES } from "../router/routes";
-import { Menu, X, BarChart3, GitCompare, BookOpen, Activity, Search } from "lucide-react";
+import {
+  Menu,
+  X,
+  BarChart3,
+  GitCompare,
+  BookOpen,
+  Activity,
+  Search,
+  Briefcase,
+  ShieldAlert,
+  LogIn,
+  LogOut,
+} from "lucide-react";
 import { clsx } from "clsx";
+import { useAuth } from "../../features/auth/context/AuthContext";
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { currentPath } = useRouter();
+  const { user, isAuthenticated, logout, openAuthModal } = useAuth();
+  const isAdmin = Boolean(isAuthenticated && user?.roles?.includes("admin"));
 
   const navLinks = [
     { label: "Games Catalog", to: ROUTES.HOME, icon: BarChart3 },
     { label: "Compare Games", to: ROUTES.COMPARE, icon: GitCompare },
+    { label: "Workspace", to: ROUTES.WORKSPACE, icon: Briefcase },
+    ...(isAdmin ? [{ label: "Admin", to: ROUTES.ADMIN, icon: ShieldAlert }] : []),
     { label: "Methodology", to: ROUTES.METHODOLOGY, icon: BookOpen },
     { label: "System Health", to: ROUTES.STATUS, icon: Activity },
   ];
@@ -82,6 +99,43 @@ export const Header: React.FC = () => {
             </kbd>
           </Link>
 
+          {/* User Auth Profile / Sign In */}
+          {isAuthenticated && user ? (
+            <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-800">
+              <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-800/60 border border-slate-700/60">
+                <div className="w-6 h-6 rounded-full bg-sky-600/30 border border-sky-500/40 flex items-center justify-center text-sky-300 text-xs font-semibold">
+                  {user.display_name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-medium text-slate-200 leading-tight max-w-[110px] truncate">
+                    {user.display_name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 capitalize">
+                    {user.roles?.[0] || "Researcher"}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => logout()}
+                title="Sign Out"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-rose-300 hover:bg-rose-950/30 transition-colors"
+                aria-label="Sign out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openAuthModal}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-medium text-white shadow-sm shadow-sky-600/20 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
@@ -128,6 +182,45 @@ export const Header: React.FC = () => {
               </Link>
             );
           })}
+
+          <div className="pt-3 mt-2 border-t border-slate-800">
+            {isAuthenticated && user ? (
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-800/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-sky-600/30 border border-sky-500/40 flex items-center justify-center text-sky-300 text-xs font-semibold">
+                    {user.display_name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-xs font-medium text-slate-200">{user.display_name}</span>
+                    <span className="text-[10px] text-slate-400">{user.email}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="p-1.5 text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1"
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  openAuthModal();
+                }}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-sm font-medium text-white transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In / Register</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </header>

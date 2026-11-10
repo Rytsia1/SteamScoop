@@ -124,6 +124,7 @@ postgres-data/
 redis-data/
 pgdata/
 local_storage/
+storage/
 uploads/
 media/
 

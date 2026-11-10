@@ -70,6 +70,8 @@ class AdminIngestionJobResponse(BaseModel):
     status: str
     target_reviews: int = 0
     collected_reviews: int = 0
+    error_code: str | None = None
+    error_message: str | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
 
@@ -82,6 +84,8 @@ class AdminIngestionJobResponse(BaseModel):
             status=job.status,
             target_reviews=getattr(job, "reviews_seen", 0) or 0,
             collected_reviews=getattr(job, "reviews_inserted", 0) or 0,
+            error_code=getattr(job, "error_code", None),
+            error_message=getattr(job, "error_message", None),
             started_at=job.started_at,
             finished_at=job.finished_at,
         )
@@ -99,6 +103,7 @@ class AdminPipelineRunResponse(BaseModel):
     input_count: int = 0
     success_count: int = 0
     failure_count: int = 0
+    error_summary: str | None = None
     started_at: datetime
     finished_at: datetime | None = None
 
@@ -112,6 +117,7 @@ class AdminPipelineRunResponse(BaseModel):
             input_count=run.input_count or 0,
             success_count=run.success_count or 0,
             failure_count=run.failure_count or 0,
+            error_summary=getattr(run, "error_summary", None),
             started_at=run.started_at,
             finished_at=run.finished_at,
         )
@@ -138,3 +144,33 @@ class AdminModelActivateResponse(BaseModel):
     task: str
     is_active: bool
     message: str
+
+
+class AdminMetadataRefreshResponse(BaseModel):
+    """Response payload for POST /admin/games/{game_id}/metadata-refresh."""
+
+    game_id: uuid.UUID
+    status: str = "queued"
+    message: str = "Metadata refresh queued successfully."
+
+
+class AdminAuditLogResponse(BaseModel):
+    """Admin representation of a recorded security or administrative audit event."""
+
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
+
+    id: int
+    action: str
+    resource_type: str | None = None
+    resource_id: str | None = None
+    actor_user_id: uuid.UUID | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict, validation_alias="metadata_")
+    created_at: datetime
+
+
+class AdminOperationalErrorsResponse(BaseModel):
+    """Aggregated operational errors and failures for diagnostics."""
+
+    failed_ingestion_jobs: list[AdminIngestionJobResponse]
+    failed_pipeline_runs: list[AdminPipelineRunResponse]
+    total_failures: int

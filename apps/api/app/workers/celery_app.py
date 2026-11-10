@@ -28,6 +28,8 @@ celery_app.conf.update(
         "app.workers.tasks.process_review_batch": {"queue": "ml_inference"},
         "app.workers.tasks.aggregate_game_analytics": {"queue": "analytics"},
         "app.workers.tasks.reprocess_game_pipeline": {"queue": "ml_inference"},
+        "app.workers.tasks.generate_export_artifact": {"queue": "exports"},
+        "app.workers.tasks.cleanup_expired_exports": {"queue": "exports"},
     },
 )
 

@@ -294,3 +294,58 @@ class WorkspaceRepository(BaseRepository[ResearchProject]):
             .order_by(AnalysisSnapshot.snapshot_number.desc())
         )
         return self.session.scalars(stmt).all()
+
+    def get_snapshot(self, snapshot_id: uuid.UUID) -> AnalysisSnapshot | None:
+        """Fetch a single snapshot by ID."""
+        return self.session.get(AnalysisSnapshot, snapshot_id)
+
+    def list_project_members(self, project_id: uuid.UUID) -> Sequence[ProjectMember]:
+        """List all member collaborator records for a project."""
+        stmt = (
+            select(ProjectMember)
+            .where(ProjectMember.project_id == project_id)
+            .order_by(ProjectMember.joined_at.asc())
+        )
+        return self.session.scalars(stmt).all()
+
+    def add_project_member(
+        self,
+        project_id: uuid.UUID,
+        user_id: uuid.UUID,
+        project_role: str = "viewer",
+        invited_by_user_id: uuid.UUID | None = None,
+    ) -> ProjectMember:
+        """Add or update collaborator role in a project workspace."""
+        stmt = select(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+        existing = self.session.scalars(stmt).first()
+        if existing:
+            existing.project_role = project_role
+            self.session.commit()
+            self.session.refresh(existing)
+            return existing
+
+        member = ProjectMember(
+            project_id=project_id,
+            user_id=user_id,
+            project_role=project_role,
+            invited_by_user_id=invited_by_user_id,
+            joined_at=datetime.now(UTC),
+        )
+        self.session.add(member)
+        self.session.commit()
+        self.session.refresh(member)
+        return member
+
+    def remove_project_member(self, project_id: uuid.UUID, user_id: uuid.UUID) -> bool:
+        """Remove collaborator membership from project."""
+        stmt = delete(ProjectMember).where(
+            ProjectMember.project_id == project_id,
+            ProjectMember.user_id == user_id,
+        )
+        result = self.session.execute(stmt)
+        self.session.commit()
+        rowcount = getattr(result, "rowcount", 0)
+        return bool(rowcount and rowcount > 0)

@@ -115,6 +115,21 @@ class ExportNotFoundError(ResourceNotFoundError):
         )
 
 
+class UserNotFoundError(ResourceNotFoundError):
+    """Raised when an account cannot be located by email or ID."""
+
+    def __init__(
+        self,
+        identifier: str | uuid.UUID,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"User '{identifier}' was not found.",
+            code="USER_NOT_FOUND",
+            details=details,
+        )
+
+
 class ModelNotFoundError(ResourceNotFoundError):
     """Raised when an ML model is not found in the model registry."""
 
@@ -312,6 +327,93 @@ class ExportExpiredError(DomainError):
             message=f"Export artifact '{export_id}' has expired.",
             code="EXPORT_EXPIRED",
             status_code=410,
+            details=details,
+        )
+
+
+class ExportNotReadyError(DomainError):
+    """Raised when download is attempted while an export job is still queued or running."""
+
+    def __init__(
+        self,
+        export_id: str | uuid.UUID,
+        status: str = "processing",
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Export '{export_id}' is not ready for download (current status: {status}).",
+            code="EXPORT_NOT_READY",
+            status_code=409,
+            details=details,
+        )
+
+
+class ExportCancelledError(DomainError):
+    """Raised when download is attempted for a cancelled export."""
+
+    def __init__(
+        self,
+        export_id: str | uuid.UUID,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Export '{export_id}' has been cancelled.",
+            code="EXPORT_CANCELLED",
+            status_code=409,
+            details=details,
+        )
+
+
+class ExportFailedError(DomainError):
+    """Raised when download is attempted for a failed export."""
+
+    def __init__(
+        self,
+        export_id: str | uuid.UUID,
+        error_code: str | None = None,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        reason = f" ({error_code})" if error_code else ""
+        super().__init__(
+            message=f"Export '{export_id}' failed during generation{reason}.",
+            code="EXPORT_FAILED",
+            status_code=409,
+            details=details,
+        )
+
+
+class ExportLimitExceededError(DomainError):
+    """Raised when export configuration exceeds allowed row or size quota (HTTP 413)."""
+
+    def __init__(
+        self,
+        reason: str,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=f"Export request exceeds allowed capacity: {reason}.",
+            code="EXPORT_LIMIT_EXCEEDED",
+            status_code=413,
+            details=details,
+        )
+
+
+class ExportConcurrencyLimitError(DomainError):
+    """Raised when a user exceeds the maximum allowed concurrent export jobs (HTTP 429)."""
+
+    def __init__(
+        self,
+        active_count: int,
+        limit: int,
+        details: list[dict[str, Any]] | None = None,
+    ) -> None:
+        super().__init__(
+            message=(
+                f"You already have {active_count} active export jobs "
+                f"(maximum allowed: {limit}). Please wait for them to complete."
+            ),
+            code="EXPORT_CONCURRENCY_LIMIT_EXCEEDED",
+            status_code=429,
             details=details,
         )
 

@@ -28,16 +28,21 @@ router = APIRouter()
     status_code=status.HTTP_202_ACCEPTED,
     summary="Enqueue Asynchronous Data Export",
     description=(
-        "Enqueue an asynchronous data export job in CSV or JSON format for reviews or analytics."
+        "Enqueue an asynchronous data export job in CSV, JSON, or XLSX format "
+        "for reviews or analytics."
     ),
 )
 async def create_export(
     request: ExportCreateRequest,
     current_user: User = Depends(get_current_active_user),
+    user_repo: UserRepository = Depends(get_user_repository),
     export_service: ExportService = Depends(get_export_service),
     request_id: str = Depends(get_request_id),
 ) -> ResponseEnvelope[ExportResponseData]:
-    job_data = export_service.create_export(user=current_user, request=request)
+    roles = user_repo.get_user_roles(current_user.id)
+    job_data = export_service.create_export(
+        user=current_user, request=request, user_roles=roles
+    )
     now_utc = datetime.now(UTC).isoformat()
 
     return ResponseEnvelope[ExportResponseData](

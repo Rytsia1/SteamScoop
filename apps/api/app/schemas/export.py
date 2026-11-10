@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 class ExportCreateRequest(BaseModel):
     """Payload for POST /exports."""
 
-    format: Literal["csv", "json"] = "csv"
+    format: Literal["csv", "json", "xlsx"] = "csv"
     scope: dict[str, Any] = Field(
         description="Target resource scope (e.g. {'type': 'game_reviews', 'game_id': '...'})"
     )
@@ -20,6 +20,12 @@ class ExportCreateRequest(BaseModel):
         default_factory=dict, description="Query filters applied to export"
     )
     fields: list[str] = Field(min_length=1, max_length=20, description="Allowlisted export fields")
+    row_limit: int | None = Field(
+        default=None,
+        ge=1,
+        le=100000,
+        description="Optional maximum number of records requested",
+    )
 
 
 class ExportResponseData(BaseModel):
@@ -29,6 +35,9 @@ class ExportResponseData(BaseModel):
     status: Literal["queued", "running", "succeeded", "failed", "expired", "cancelled"]
     format: str
     row_count: int | None = None
+    file_size_bytes: int | None = None
+    error_code: str | None = None
     created_at: datetime
+    started_at: datetime | None = None
     finished_at: datetime | None = None
     expires_at: datetime | None = None

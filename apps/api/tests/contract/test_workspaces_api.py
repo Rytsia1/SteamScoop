@@ -161,3 +161,164 @@ def test_workspaces_full_crud_and_permissions(
 
     del_proj_res = client.delete(f"/api/v1/projects/{proj_id}", headers=auth_a)
     assert del_proj_res.status_code == 204
+
+
+def test_workspace_members_and_role_permissions(
+    client: TestClient, sample_catalog: dict[str, Any]
+) -> None:
+    token_owner = _register_and_login(client, "owner.perm@example.com", "ProjectOwner")
+    token_editor = _register_and_login(client, "editor.perm@example.com", "ProjectEditor")
+    token_viewer = _register_and_login(client, "viewer.perm@example.com", "ProjectViewer")
+    token_outsider = _register_and_login(client, "outsider.perm@example.com", "Outsider")
+
+    auth_owner = {"Authorization": f"Bearer {token_owner}"}
+    auth_editor = {"Authorization": f"Bearer {token_editor}"}
+    auth_viewer = {"Authorization": f"Bearer {token_viewer}"}
+    auth_outsider = {"Authorization": f"Bearer {token_outsider}"}
+
+    game1_id = sample_catalog["game1"].id
+
+    # 1. Owner creates private project
+    proj_res = client.post(
+        "/api/v1/projects",
+        json={"name": "Multi-Role Study", "visibility": "private"},
+        headers=auth_owner,
+    )
+    assert proj_res.status_code == 201
+    proj_id = proj_res.json()["data"]["id"]
+
+    # 2. Owner invites Editor and Viewer
+    add_editor_res = client.post(
+        f"/api/v1/projects/{proj_id}/members",
+        json={"email": "editor.perm@example.com", "project_role": "editor"},
+        headers=auth_owner,
+    )
+    assert add_editor_res.status_code == 201
+    assert add_editor_res.json()["data"]["project_role"] == "editor"
+
+    add_viewer_res = client.post(
+        f"/api/v1/projects/{proj_id}/members",
+        json={"email": "viewer.perm@example.com", "project_role": "viewer"},
+        headers=auth_owner,
+    )
+    assert add_viewer_res.status_code == 201
+    assert add_viewer_res.json()["data"]["project_role"] == "viewer"
+
+    # List members
+    members_res = client.get(f"/api/v1/projects/{proj_id}/members", headers=auth_owner)
+    assert members_res.status_code == 200
+    roles = {m["email"]: m["project_role"] for m in members_res.json()["data"]}
+    assert roles.get("owner.perm@example.com") == "owner"
+    assert roles.get("editor.perm@example.com") == "editor"
+    assert roles.get("viewer.perm@example.com") == "viewer"
+
+    # 3. Editor permissions:
+    # Editor CAN add game
+    editor_add_game = client.post(
+        f"/api/v1/projects/{proj_id}/games",
+        json={"game_id": str(game1_id)},
+        headers=auth_editor,
+    )
+    assert editor_add_game.status_code == 200
+
+    # Editor CAN create saved analysis
+    editor_create_ana = client.post(
+        f"/api/v1/projects/{proj_id}/analyses",
+        json={
+            "name": "Editor Saved Query",
+            "analysis_type": "review_explorer",
+            "query_config": {"aspect": "gameplay"},
+        },
+        headers=auth_editor,
+    )
+    assert editor_create_ana.status_code == 201
+    ana_id = editor_create_ana.json()["data"]["id"]
+
+    # Editor CANNOT invite other members (403 Forbidden)
+    editor_invite_fail = client.post(
+        f"/api/v1/projects/{proj_id}/members",
+        json={"email": "outsider.perm@example.com", "project_role": "viewer"},
+        headers=auth_editor,
+    )
+    assert editor_invite_fail.status_code == 403
+
+    # Editor CANNOT delete project (403 Forbidden)
+    editor_del_fail = client.delete(f"/api/v1/projects/{proj_id}", headers=auth_editor)
+    assert editor_del_fail.status_code == 403
+
+    # 4. Viewer permissions:
+    # Viewer CAN read project and list games
+    viewer_get_proj = client.get(f"/api/v1/projects/{proj_id}", headers=auth_viewer)
+    assert viewer_get_proj.status_code == 200
+    assert viewer_get_proj.json()["data"]["current_user_role"] == "viewer"
+
+    viewer_list_games = client.get(f"/api/v1/projects/{proj_id}/games", headers=auth_viewer)
+    assert viewer_list_games.status_code == 200
+    assert len(viewer_list_games.json()["data"]) == 1
+
+    # Viewer CAN read saved analysis
+    viewer_get_ana = client.get(
+        f"/api/v1/projects/{proj_id}/analyses/{ana_id}", headers=auth_viewer
+    )
+    assert viewer_get_ana.status_code == 200
+
+    # Viewer CANNOT modify project (403 Forbidden)
+    viewer_patch_fail = client.patch(
+        f"/api/v1/projects/{proj_id}",
+        json={"name": "Viewer Hacked Title"},
+        headers=auth_viewer,
+    )
+    assert viewer_patch_fail.status_code == 403
+
+    # Viewer CANNOT add game (403 Forbidden)
+    viewer_add_game_fail = client.post(
+        f"/api/v1/projects/{proj_id}/games",
+        json={"game_id": str(game1_id)},
+        headers=auth_viewer,
+    )
+    assert viewer_add_game_fail.status_code == 403
+
+    # Viewer CANNOT create saved analysis (403 Forbidden)
+    viewer_ana_fail = client.post(
+        f"/api/v1/projects/{proj_id}/analyses",
+        json={"name": "Viewer Query", "analysis_type": "review_explorer", "query_config": {}},
+        headers=auth_viewer,
+    )
+    assert viewer_ana_fail.status_code == 403
+
+    # 5. Outsider (non-member) cannot access private project (404 ProjectNotFoundError)
+    outsider_get = client.get(f"/api/v1/projects/{proj_id}", headers=auth_outsider)
+    assert outsider_get.status_code == 404
+
+    # 6. Revoke viewer access
+    remove_viewer_res = client.delete(
+        f"/api/v1/projects/{proj_id}/members/{viewer_get_proj.json()['data']['owner_user_id']}",
+        headers=auth_editor,
+    )
+    # Editor cannot remove member (403)
+    assert remove_viewer_res.status_code == 403
+
+    # Owner removes Viewer
+    user_viewer_id = next(
+        m["user_id"] for m in members_res.json()["data"] if m["project_role"] == "viewer"
+    )
+    owner_removes_viewer = client.delete(
+        f"/api/v1/projects/{proj_id}/members/{user_viewer_id}",
+        headers=auth_owner,
+    )
+    assert owner_removes_viewer.status_code == 204
+
+    # Now former viewer gets 404
+    assert client.get(f"/api/v1/projects/{proj_id}", headers=auth_viewer).status_code == 404
+
+
+def test_workspace_unauthenticated_and_uuid_manipulation(client: TestClient) -> None:
+    # 1. Unauthenticated requests return 401
+    assert client.get("/api/v1/projects").status_code == 401
+    assert client.post("/api/v1/projects", json={"name": "Test"}).status_code == 401
+
+    # 2. Random nonexistent UUID returns 404
+    token = _register_and_login(client, "rando@example.com", "Rando")
+    headers = {"Authorization": f"Bearer {token}"}
+    fake_uuid = "00000000-0000-0000-0000-000000000000"
+    assert client.get(f"/api/v1/projects/{fake_uuid}", headers=headers).status_code == 404

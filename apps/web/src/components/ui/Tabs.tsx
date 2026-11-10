@@ -10,7 +10,8 @@ export interface TabItem {
 }
 
 export interface TabsProps {
-  tabs: TabItem[];
+  tabs?: TabItem[];
+  items?: TabItem[];
   activeTab: string;
   onChange: (tabId: string) => void;
   className?: string;
@@ -19,29 +20,31 @@ export interface TabsProps {
 
 export const Tabs: React.FC<TabsProps> = ({
   tabs,
+  items,
   activeTab,
   onChange,
   className,
   ariaLabel = "Navigation tabs",
 }) => {
   const baseId = useId();
+  const tabList = tabs || items || [];
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
     let targetIndex = -1;
     if (e.key === "ArrowRight") {
-      targetIndex = (index + 1) % tabs.length;
+      targetIndex = (index + 1) % tabList.length;
     } else if (e.key === "ArrowLeft") {
-      targetIndex = (index - 1 + tabs.length) % tabs.length;
+      targetIndex = (index - 1 + tabList.length) % tabList.length;
     } else if (e.key === "Home") {
       targetIndex = 0;
     } else if (e.key === "End") {
-      targetIndex = tabs.length - 1;
+      targetIndex = tabList.length - 1;
     }
 
     if (targetIndex !== -1) {
       e.preventDefault();
-      onChange(tabs[targetIndex].id);
-      const nextBtn = document.getElementById(`${baseId}-tab-${tabs[targetIndex].id}`);
+      onChange(tabList[targetIndex].id);
+      const nextBtn = document.getElementById(`${baseId}-tab-${tabList[targetIndex].id}`);
       nextBtn?.focus();
     }
   };
@@ -57,7 +60,7 @@ export const Tabs: React.FC<TabsProps> = ({
         )
       )}
     >
-      {tabs.map((tab, idx) => {
+      {tabList.map((tab, idx) => {
         const isSelected = tab.id === activeTab;
         return (
           <button
@@ -76,7 +79,16 @@ export const Tabs: React.FC<TabsProps> = ({
                 : "border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-700"
             )}
           >
-            {tab.icon}
+            {tab.icon &&
+              (React.isValidElement(tab.icon)
+                ? tab.icon
+                : typeof tab.icon === "function" ||
+                  (typeof tab.icon === "object" && tab.icon !== null)
+                ? React.createElement(
+                    tab.icon as unknown as React.ComponentType<{ className?: string }>,
+                    { className: "w-4 h-4" }
+                  )
+                : null)}
             <span>{tab.label}</span>
             {tab.count !== undefined && (
               <span

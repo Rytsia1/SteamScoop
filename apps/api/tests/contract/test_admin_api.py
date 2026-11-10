@@ -178,3 +178,65 @@ def test_admin_model_registry_and_activation(
     act_data = ResponseEnvelope[AdminModelActivateResponse].model_validate(activate_res.json()).data
     assert act_data is not None
     assert act_data.is_active is True
+
+
+def test_admin_metadata_refresh(
+    client: TestClient, db_session: Session, sample_catalog: dict[str, Any]
+) -> None:
+    token = _setup_admin_token(client, db_session)
+    admin_header = {"Authorization": f"Bearer {token}"}
+    reg_token = _setup_regular_token(client)
+    regular_header = {"Authorization": f"Bearer {reg_token}"}
+    game_id = str(sample_catalog["game1"].id)
+
+    # 1. Non-admin forbidden
+    forbidden_res = client.post(
+        f"/api/v1/admin/games/{game_id}/metadata-refresh",
+        headers=regular_header,
+    )
+    assert forbidden_res.status_code == 403
+
+    # 2. Admin queues metadata refresh
+    res = client.post(
+        f"/api/v1/admin/games/{game_id}/metadata-refresh",
+        headers=admin_header,
+    )
+    assert res.status_code == 202
+    assert res.json()["data"]["game_id"] == game_id
+    assert res.json()["data"]["status"] == "queued"
+
+    # 3. Non-existent game returns 404
+    missing_id = "00000000-0000-0000-0000-000000000000"
+    missing_res = client.post(
+        f"/api/v1/admin/games/{missing_id}/metadata-refresh",
+        headers=admin_header,
+    )
+    assert missing_res.status_code == 404
+    assert missing_res.json()["error"]["code"] == "GAME_NOT_FOUND"
+
+
+def test_admin_audit_logs_and_operational_errors(
+    client: TestClient, db_session: Session, sample_catalog: dict[str, Any]
+) -> None:
+    token = _setup_admin_token(client, db_session)
+    admin_header = {"Authorization": f"Bearer {token}"}
+    reg_token = _setup_regular_token(client)
+    regular_header = {"Authorization": f"Bearer {reg_token}"}
+
+    # 1. Non-admin forbidden from audit logs and operational errors
+    assert client.get("/api/v1/admin/audit-logs", headers=regular_header).status_code == 403
+    assert client.get("/api/v1/admin/operational-errors", headers=regular_header).status_code == 403
+
+    # 2. Admin retrieves audit logs (at least one action from previous operations)
+    audit_res = client.get("/api/v1/admin/audit-logs", headers=admin_header)
+    assert audit_res.status_code == 200
+    logs = audit_res.json()["data"]
+    assert isinstance(logs, list)
+
+    # 3. Admin retrieves operational errors
+    errors_res = client.get("/api/v1/admin/operational-errors", headers=admin_header)
+    assert errors_res.status_code == 200
+    errors_data = errors_res.json()["data"]
+    assert "failed_ingestion_jobs" in errors_data
+    assert "failed_pipeline_runs" in errors_data
+    assert "total_failures" in errors_data

@@ -36,8 +36,30 @@ class ProjectResponse(BaseModel):
     description: str | None
     visibility: str
     status: str
+    current_user_role: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class ProjectMemberItem(BaseModel):
+    """Project collaborator membership representation."""
+
+    project_id: uuid.UUID
+    user_id: uuid.UUID
+    project_role: str
+    joined_at: datetime
+    email: str | None = None
+    display_name: str | None = None
+
+
+class ProjectAddMemberRequest(BaseModel):
+    """Payload for POST /projects/{project_id}/members."""
+
+    email: str | None = Field(default=None, description="Email of user to invite")
+    user_id: uuid.UUID | None = Field(default=None, description="UUID of user to invite")
+    project_role: Literal["editor", "viewer"] = Field(
+        default="viewer", description="Role to grant: editor or viewer"
+    )
 
 
 class ProjectGameItem(BaseModel):

@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.models.workspace import ExportJob
@@ -27,20 +28,25 @@ class ExportRepository(BaseRepository[ExportJob]):
         filters: dict[str, Any],
         fields: list[str],
         project_id: uuid.UUID | None = None,
+        row_limit: int | None = None,
         ttl_days: int = 7,
     ) -> ExportJob:
         """Create a new queued asynchronous export job."""
         now = datetime.now(UTC)
+        export_config: dict[str, Any] = {
+            "scope": scope,
+            "filters": filters,
+            "fields": fields,
+        }
+        if row_limit is not None:
+            export_config["row_limit"] = row_limit
+
         export_job = ExportJob(
             requested_by_user_id=requested_by_user_id,
             project_id=project_id,
             format=export_format,
             status="queued",
-            export_config={
-                "scope": scope,
-                "filters": filters,
-                "fields": fields,
-            },
+            export_config=export_config,
             created_at=now,
             expires_at=now + timedelta(days=ttl_days),
         )
@@ -57,13 +63,43 @@ class ExportRepository(BaseRepository[ExportJob]):
         )
         return self.session.scalars(stmt).first()
 
-    def cancel_export(self, export_id: uuid.UUID, user_id: uuid.UUID) -> bool:
-        """Cancel a queued or running export job."""
-        job = self.get_by_user(export_id, user_id)
-        if not job or job.status not in ["queued", "running"]:
-            return False
+    def count_active_jobs_by_user(self, user_id: uuid.UUID) -> int:
+        """Count active queued or running jobs for concurrency rate-limiting."""
+        stmt = select(func.count(ExportJob.id)).where(
+            ExportJob.requested_by_user_id == user_id,
+            ExportJob.status.in_(["queued", "running"]),
+        )
+        return self.session.scalar(stmt) or 0
+
+    def cancel_export(
+        self,
+        export_id: uuid.UUID,
+        user_id: uuid.UUID | None = None,
+        is_admin: bool = False,
+    ) -> ExportJob | None:
+        """Cancel a queued, running, or completed export job."""
+        if is_admin:
+            job = self.get_by_id(export_id)
+        elif user_id:
+            job = self.get_by_user(export_id, user_id)
+        else:
+            return None
+
+        if not job or job.status == "cancelled":
+            return None
 
         job.status = "cancelled"
         job.finished_at = datetime.now(UTC)
         self.session.commit()
-        return True
+        self.session.refresh(job)
+        return job
+
+    def get_expired_jobs(self, now: datetime | None = None) -> Sequence[ExportJob]:
+        """Fetch jobs whose expiration date has passed and are not yet marked expired."""
+        cutoff = now or datetime.now(UTC)
+        stmt = select(ExportJob).where(
+            ExportJob.expires_at.is_not(None),
+            ExportJob.expires_at < cutoff,
+            ExportJob.status != "expired",
+        )
+        return self.session.scalars(stmt).all()

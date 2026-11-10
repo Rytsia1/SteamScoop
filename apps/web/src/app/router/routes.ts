@@ -6,6 +6,9 @@ export const ROUTES = {
   COMPARE: "/compare",
   METHODOLOGY: "/methodology",
   STATUS: "/status",
+  WORKSPACE: "/workspace",
+  PROJECT_DETAIL: "/workspace/projects/:projectId",
+  ADMIN: "/admin",
 } as const;
 
 export function gameOverviewPath(gameId: string): string {
@@ -14,5 +17,9 @@ export function gameOverviewPath(gameId: string): string {
 
 export function gameReviewsPath(gameId: string): string {
   return `/games/${encodeURIComponent(gameId)}/reviews`;
+}
+
+export function projectDetailPath(projectId: string): string {
+  return `/workspace/projects/${encodeURIComponent(projectId)}`;
 }
 

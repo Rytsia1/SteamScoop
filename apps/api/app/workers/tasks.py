@@ -247,3 +247,45 @@ def reprocess_game_pipeline(
         raise
     finally:
         db.close()
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    max_retries=2,
+    name="app.workers.tasks.generate_export_artifact",
+)
+def generate_export_artifact(self: Task, export_id: str) -> dict[str, Any]:
+    """Execute asynchronous analytical data export and file generation."""
+    logger.info("Starting generate_export_artifact task for export: %s", export_id)
+    db = SessionLocal()
+    try:
+        from app.services.export_service import ExportService
+
+        service = ExportService(session=db)
+        job = service.generate_artifact(uuid.UUID(export_id))
+        return {
+            "export_id": str(job.id),
+            "status": job.status,
+            "row_count": job.row_count,
+            "finished_at": job.finished_at.isoformat() if job.finished_at else None,
+        }
+    except Exception as exc:
+        logger.exception("Export generation failed for job %s: %s", export_id, exc)
+        raise
+    finally:
+        db.close()
+
+
+@celery_app.task(name="app.workers.tasks.cleanup_expired_exports")  # type: ignore[untyped-decorator]
+def cleanup_expired_exports() -> dict[str, Any]:
+    """Scan and purge expired export artifacts from private storage."""
+    logger.info("Running cleanup_expired_exports task")
+    db = SessionLocal()
+    try:
+        from app.services.export_service import ExportService
+
+        service = ExportService(session=db)
+        purged_count = service.cleanup_expired_exports()
+        return {"purged_count": purged_count}
+    finally:
+        db.close()
