@@ -64,6 +64,10 @@ def create_application() -> FastAPI:
         try:
             response = await call_next(request)
             response.headers["X-Request-ID"] = request_id
+            if hasattr(request.state, "rate_limit_limit"):
+                response.headers["RateLimit-Limit"] = str(request.state.rate_limit_limit)
+                response.headers["RateLimit-Remaining"] = str(request.state.rate_limit_remaining)
+                response.headers["RateLimit-Reset"] = str(request.state.rate_limit_reset)
             return response
         finally:
             correlation_id_ctx.reset(token)
@@ -103,9 +107,14 @@ def create_application() -> FastAPI:
             ),
             meta=MetaEnvelope(request_id=request_id, timestamp=now_utc),
         )
+        headers = {"X-Request-ID": request_id}
+        if exc.headers:
+            headers.update(exc.headers)
+
         return JSONResponse(
             status_code=exc.status_code,
             content=error_envelope.model_dump(),
+            headers=headers,
         )
 
     # Exception Handler: Starlette HTTP Exceptions (404, 405, etc.)
@@ -133,9 +142,14 @@ def create_application() -> FastAPI:
             ),
             meta=MetaEnvelope(request_id=request_id, timestamp=now_utc),
         )
+        headers = {"X-Request-ID": request_id}
+        if exc.headers:
+            headers.update(exc.headers)
+
         return JSONResponse(
             status_code=exc.status_code,
             content=error_envelope.model_dump(),
+            headers=headers,
         )
 
     # Global Exception Handler: Validation Errors

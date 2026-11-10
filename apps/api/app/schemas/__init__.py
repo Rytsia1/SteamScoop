@@ -1,3 +1,13 @@
+from app.schemas.admin import (
+    AdminGameCreateRequest,
+    AdminGameResponse,
+    AdminGameUpdateRequest,
+    AdminIngestionJobCreateRequest,
+    AdminIngestionJobResponse,
+    AdminModelActivateResponse,
+    AdminModelResponse,
+    AdminPipelineRunResponse,
+)
 from app.schemas.analytics import (
     AnalyticsPoint,
     AspectSummaryPoint,
@@ -6,6 +16,12 @@ from app.schemas.analytics import (
     GameTopicsData,
     SentimentDistributionData,
     TopicSummaryPoint,
+)
+from app.schemas.auth import (
+    LoginRequest,
+    LoginResponseData,
+    RegisterRequest,
+    UserProfileResponse,
 )
 from app.schemas.common import (
     DependencyStatus,
@@ -16,12 +32,50 @@ from app.schemas.common import (
     PaginationMeta,
     ResponseEnvelope,
 )
-from app.schemas.game import GameDataCoverage, GameDetail, GameListItem, GameQueryParams
+from app.schemas.comparison import (
+    ComparisonPeriod,
+    ComparisonRequest,
+    ComparisonResponseData,
+    GameComparisonResult,
+)
+from app.schemas.export import ExportCreateRequest, ExportResponseData
+from app.schemas.game import (
+    CoverageSummary,
+    GameDataCoverage,
+    GameDetail,
+    GameListItem,
+    GameOverviewData,
+    GameQueryParams,
+    ModelSentimentSummary,
+    SteamRecommendationSummary,
+)
+from app.schemas.methodology import (
+    CollectionPolicy,
+    DatasetDocumentationItem,
+    MethodologyResponse,
+    MetricDefinitions,
+    ModelCardItem,
+)
 from app.schemas.review import (
+    ReviewAspectIntel,
     ReviewDetail,
+    ReviewIntelligenceData,
     ReviewListItem,
     ReviewQueryParams,
+    ReviewTopicIntel,
     SentimentSummary,
+)
+from app.schemas.workspace import (
+    AnalysisSnapshotCreateRequest,
+    AnalysisSnapshotResponse,
+    ProjectAddGameRequest,
+    ProjectCreateRequest,
+    ProjectGameItem,
+    ProjectResponse,
+    ProjectUpdateRequest,
+    SavedAnalysisCreateRequest,
+    SavedAnalysisResponse,
+    SavedAnalysisUpdateRequest,
 )
 
 __all__ = [
@@ -35,11 +89,18 @@ __all__ = [
     "GameListItem",
     "GameDataCoverage",
     "GameDetail",
+    "GameOverviewData",
     "GameQueryParams",
+    "SteamRecommendationSummary",
+    "ModelSentimentSummary",
+    "CoverageSummary",
     "SentimentSummary",
     "ReviewListItem",
     "ReviewDetail",
     "ReviewQueryParams",
+    "ReviewAspectIntel",
+    "ReviewTopicIntel",
+    "ReviewIntelligenceData",
     "AnalyticsPoint",
     "GameAnalyticsData",
     "SentimentDistributionData",
@@ -47,4 +108,37 @@ __all__ = [
     "GameAspectsData",
     "TopicSummaryPoint",
     "GameTopicsData",
+    "MethodologyResponse",
+    "CollectionPolicy",
+    "MetricDefinitions",
+    "ModelCardItem",
+    "DatasetDocumentationItem",
+    "ComparisonPeriod",
+    "ComparisonRequest",
+    "ComparisonResponseData",
+    "GameComparisonResult",
+    "RegisterRequest",
+    "LoginRequest",
+    "UserProfileResponse",
+    "LoginResponseData",
+    "ProjectCreateRequest",
+    "ProjectUpdateRequest",
+    "ProjectResponse",
+    "ProjectGameItem",
+    "ProjectAddGameRequest",
+    "SavedAnalysisCreateRequest",
+    "SavedAnalysisUpdateRequest",
+    "SavedAnalysisResponse",
+    "AnalysisSnapshotCreateRequest",
+    "AnalysisSnapshotResponse",
+    "ExportCreateRequest",
+    "ExportResponseData",
+    "AdminGameCreateRequest",
+    "AdminGameUpdateRequest",
+    "AdminGameResponse",
+    "AdminIngestionJobCreateRequest",
+    "AdminIngestionJobResponse",
+    "AdminPipelineRunResponse",
+    "AdminModelResponse",
+    "AdminModelActivateResponse",
 ]

@@ -52,6 +52,44 @@ class GameDetail(BaseModel):
     updated_at: datetime
 
 
+class SteamRecommendationSummary(BaseModel):
+    """Steam user recommendation statistics."""
+
+    recommended_count: int = Field(ge=0)
+    not_recommended_count: int = Field(ge=0)
+    positive_rate: float = Field(ge=0.0, le=1.0)
+
+
+class ModelSentimentSummary(BaseModel):
+    """Model-inferred sentiment distribution for the game."""
+
+    positive_count: int = Field(ge=0)
+    negative_count: int = Field(ge=0)
+    neutral_count: int = Field(ge=0)
+    unclassified_count: int = Field(ge=0)
+    positive_rate: float = Field(ge=0.0, le=1.0)
+    model_version: str
+
+
+class CoverageSummary(BaseModel):
+    """Data collection coverage metadata."""
+
+    collected_at: datetime | None = None
+    sampled: bool = True
+    language_scope: list[str] = Field(default_factory=lambda: ["all"])
+    collection_policy: str = "weekly_hybrid_sample"
+
+
+class GameOverviewData(BaseModel):
+    """Main summary card and collection coverage for GET /games/{game_id}/overview."""
+
+    game_id: uuid.UUID
+    review_count: int = Field(ge=0)
+    steam_recommendation: SteamRecommendationSummary
+    model_sentiment: ModelSentimentSummary
+    coverage: CoverageSummary
+
+
 class GameQueryParams(BaseModel):
     """Validated query parameters for game search and listing."""
 
@@ -65,17 +103,21 @@ class GameQueryParams(BaseModel):
         max_length=50,
         description="Genre label filter",
     )
+    catalog_status: str | None = Field(
+        default="indexed",
+        description="Catalog status filter",
+    )
     limit: int = Field(
         default=20,
         ge=1,
         le=100,
-        description="Maximum items to return per page",
+        description="Page limit (1 to 100)",
     )
     cursor: str | None = Field(
         default=None,
-        description="Opaque cursor token for keyset pagination",
+        description="Opaque base64 cursor token",
     )
     sort: Literal["name_asc", "name_desc", "recently_updated"] = Field(
         default="name_asc",
-        description="Sort order",
+        description="Sort ordering",
     )

@@ -14,6 +14,38 @@ class SentimentSummary(BaseModel):
     model_version: str = Field(description="Model version key that produced the prediction")
 
 
+class ReviewAspectIntel(BaseModel):
+    """Aspect-level sentiment detail for a single review."""
+
+    aspect_key: str
+    display_name: str
+    sentiment: str = Field(description="positive, negative, or neutral")
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
+    evidence_text: str | None = None
+    start_offset: int | None = None
+    end_offset: int | None = None
+
+
+class ReviewTopicIntel(BaseModel):
+    """Topic assignment detail for a single review."""
+
+    topic_id: uuid.UUID
+    topic_key: str
+    label: str
+    score: float | None = Field(default=None, ge=0.0, le=1.0)
+    model_version: str
+    is_primary: bool = True
+
+
+class ReviewIntelligenceData(BaseModel):
+    """Combined sentiment, aspect, and topic intelligence for review endpoint."""
+
+    review_id: uuid.UUID
+    sentiment: SentimentSummary | None = None
+    aspects: list[ReviewAspectIntel] = Field(default_factory=list)
+    topics: list[ReviewTopicIntel] = Field(default_factory=list)
+
+
 class ReviewListItem(BaseModel):
     """Review item in a paginated game review list."""
 

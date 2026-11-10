@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.deps import get_game_service, get_request_id, get_review_service
 from app.schemas.common import MetaEnvelope, ResponseEnvelope
-from app.schemas.game import GameDetail, GameListItem, GameQueryParams
+from app.schemas.game import GameDetail, GameListItem, GameOverviewData, GameQueryParams
 from app.schemas.review import ReviewListItem, ReviewQueryParams
 from app.services.game_service import GameService
 from app.services.review_service import ReviewService
@@ -76,6 +76,33 @@ async def get_game(
 
     return ResponseEnvelope[GameDetail](
         data=game,
+        error=None,
+        meta=MetaEnvelope(
+            request_id=request_id,
+            timestamp=now_utc,
+        ),
+    )
+
+
+@router.get(
+    "/games/{game_id}/overview",
+    response_model=ResponseEnvelope[GameOverviewData],
+    summary="Get Game Overview Summary",
+    description=(
+        "Retrieve unified game overview combining game metadata, Steam recommendation rates, "
+        "ML sentiment summary, and analytical review coverage."
+    ),
+)
+async def get_game_overview(
+    game_id: uuid.UUID = Path(..., description="Target game UUID"),
+    game_service: GameService = Depends(get_game_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[GameOverviewData]:
+    overview = game_service.get_game_overview(game_id)
+    now_utc = datetime.now(UTC).isoformat()
+
+    return ResponseEnvelope[GameOverviewData](
+        data=overview,
         error=None,
         meta=MetaEnvelope(
             request_id=request_id,

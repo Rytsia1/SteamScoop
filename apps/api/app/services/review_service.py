@@ -1,13 +1,24 @@
 import uuid
 
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
 from app.core.exceptions import GameNotFoundError, ReviewNotFoundError
+from app.models.aspect import Aspect, AspectPrediction
+from app.models.ml import MLModel
+from app.models.review import Review
+from app.models.sentiment import SentimentPrediction
+from app.models.topic import ReviewTopic, Topic
 from app.repositories.game import GameRepository
 from app.repositories.review import ReviewRepository
 from app.schemas.common import PaginationMeta
 from app.schemas.review import (
+    ReviewAspectIntel,
     ReviewDetail,
+    ReviewIntelligenceData,
     ReviewListItem,
     ReviewQueryParams,
+    ReviewTopicIntel,
     SentimentSummary,
 )
 
@@ -15,9 +26,15 @@ from app.schemas.review import (
 class ReviewService:
     """Domain service encapsulating review retrieval, filtering, and sentiment attachment."""
 
-    def __init__(self, game_repo: GameRepository, review_repo: ReviewRepository) -> None:
+    def __init__(
+        self,
+        game_repo: GameRepository,
+        review_repo: ReviewRepository,
+        session: Session | None = None,
+    ) -> None:
         self.game_repo = game_repo
         self.review_repo = review_repo
+        self.session = session or review_repo.session
 
     def get_review(self, review_id: uuid.UUID) -> ReviewDetail:
         """Fetch complete public details for a single review by UUID.
@@ -119,3 +136,77 @@ class ReviewService:
             next_cursor=next_cursor,
         )
         return items, pagination
+
+    def get_review_intelligence(self, review_id: uuid.UUID) -> ReviewIntelligenceData:
+        """Fetch combined sentiment, aspect, and topic intelligence for review."""
+        review = self.session.get(Review, review_id)
+        if not review:
+            raise ReviewNotFoundError(str(review_id))
+
+        # 1. Fetch current sentiment prediction
+        sent_stmt = (
+            select(SentimentPrediction, MLModel)
+            .outerjoin(MLModel, SentimentPrediction.ml_model_id == MLModel.id)
+            .where(
+                SentimentPrediction.review_id == review_id,
+                SentimentPrediction.is_current.is_(True),
+            )
+        )
+        sent_row = self.session.execute(sent_stmt).first()
+        sentiment_summary: SentimentSummary | None = None
+        if sent_row:
+            sp, m = sent_row
+            sentiment_summary = SentimentSummary(
+                label=sp.label,
+                confidence=float(sp.confidence) if sp.confidence is not None else None,
+                model_version=m.version if m else "v1.0.0",
+            )
+
+        # 2. Fetch aspect predictions
+        asp_stmt = (
+            select(AspectPrediction, Aspect)
+            .join(Aspect, AspectPrediction.aspect_id == Aspect.id)
+            .where(AspectPrediction.review_id == review_id)
+            .order_by(AspectPrediction.confidence.desc().nullslast())
+        )
+        asp_rows = self.session.execute(asp_stmt).all()
+        aspect_intel = [
+            ReviewAspectIntel(
+                aspect_key=asp.aspect_key,
+                display_name=asp.display_name,
+                sentiment=ap.sentiment_label,
+                confidence=float(ap.confidence) if ap.confidence is not None else None,
+                evidence_text=ap.evidence_text,
+                start_offset=ap.start_offset,
+                end_offset=ap.end_offset,
+            )
+            for ap, asp in asp_rows
+        ]
+
+        # 3. Fetch topic assignments
+        top_stmt = (
+            select(ReviewTopic, Topic, MLModel)
+            .join(Topic, ReviewTopic.topic_id == Topic.id)
+            .outerjoin(MLModel, Topic.ml_model_id == MLModel.id)
+            .where(ReviewTopic.review_id == review_id)
+            .order_by(ReviewTopic.is_primary.desc(), ReviewTopic.score.desc().nullslast())
+        )
+        top_rows = self.session.execute(top_stmt).all()
+        topic_intel = [
+            ReviewTopicIntel(
+                topic_id=rt.topic_id,
+                topic_key=top.topic_key,
+                label=top.label,
+                score=float(rt.score) if rt.score is not None else None,
+                model_version=m.version if m else "v1.0.0",
+                is_primary=rt.is_primary,
+            )
+            for rt, top, m in top_rows
+        ]
+
+        return ReviewIntelligenceData(
+            review_id=review_id,
+            sentiment=sentiment_summary,
+            aspects=aspect_intel,
+            topics=topic_intel,
+        )
