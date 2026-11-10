@@ -1,6 +1,14 @@
+export interface PaginationMeta {
+  limit?: number | null;
+  next_cursor?: string | null;
+  has_more: boolean;
+  total_count?: number | null;
+}
+
 export interface MetaEnvelope {
   request_id: string;
   timestamp: string;
+  pagination?: PaginationMeta | null;
 }
 
 export interface ErrorDetail {

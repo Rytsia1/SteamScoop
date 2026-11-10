@@ -19,6 +19,16 @@ export default defineConfig({
             },
         },
     },
+    build: {
+        rollupOptions: {
+            output: {
+                manualChunks: {
+                    vendor: ["react", "react-dom", "@tanstack/react-query"],
+                    charts: ["echarts", "echarts-for-react"],
+                },
+            },
+        },
+    },
     test: {
         globals: true,
         environment: "jsdom",
