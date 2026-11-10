@@ -90,4 +90,3 @@ def test_apply_curated_labels() -> None:
     assert rubric_0.interpretability == 5
     assert rubric_0.suggested_label == "Combat Mechanics & Gunplay"
     assert "curator_alex" in (rubric_0.evaluator_notes or "")
-

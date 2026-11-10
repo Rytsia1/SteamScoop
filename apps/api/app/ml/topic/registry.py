@@ -184,4 +184,3 @@ class TopicModelRegistryService:
         db.commit()
         db.refresh(model)
         return model
-

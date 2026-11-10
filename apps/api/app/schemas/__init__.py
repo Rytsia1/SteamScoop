@@ -1,3 +1,12 @@
+from app.schemas.analytics import (
+    AnalyticsPoint,
+    AspectSummaryPoint,
+    GameAnalyticsData,
+    GameAspectsData,
+    GameTopicsData,
+    SentimentDistributionData,
+    TopicSummaryPoint,
+)
 from app.schemas.common import (
     DependencyStatus,
     ErrorDetail,
@@ -31,4 +40,11 @@ __all__ = [
     "ReviewListItem",
     "ReviewDetail",
     "ReviewQueryParams",
+    "AnalyticsPoint",
+    "GameAnalyticsData",
+    "SentimentDistributionData",
+    "AspectSummaryPoint",
+    "GameAspectsData",
+    "TopicSummaryPoint",
+    "GameTopicsData",
 ]

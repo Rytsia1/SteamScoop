@@ -8,7 +8,9 @@ from app.repositories.ingestion import (
     IngestionJobRepository,
     commit_ingestion_page_transaction,
 )
+from app.repositories.pipeline_run import PipelineRunRepository
 from app.repositories.review import ReviewRepository
+from app.repositories.sentiment import SentimentRepository
 from app.repositories.topic import TopicRepository
 
 __all__ = [
@@ -19,7 +21,9 @@ __all__ = [
     "GameRepository",
     "IngestionBatchRepository",
     "IngestionJobRepository",
+    "PipelineRunRepository",
     "ReviewRepository",
+    "SentimentRepository",
     "TopicRepository",
     "commit_ingestion_page_transaction",
 ]

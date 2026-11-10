@@ -21,6 +21,10 @@ class BaseRepository(Generic[ModelType]):
         """Fetch a single record by its primary key UUID."""
         return self.session.get(self.model, entity_id)
 
+    def get_by_id(self, entity_id: uuid.UUID) -> ModelType | None:
+        """Fetch a single record by its primary key UUID (alias for get)."""
+        return self.get(entity_id)
+
     def get_multi(self, skip: int = 0, limit: int = 100) -> Sequence[ModelType]:
         """Fetch multiple records with standard pagination offsets."""
         stmt = select(self.model).offset(skip).limit(limit)

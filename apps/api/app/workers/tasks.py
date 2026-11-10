@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 from celery import Task
+from sqlalchemy.exc import DatabaseError, OperationalError
 
 from app.db.session import SessionLocal
 from app.ingestion.pipeline import ReviewIngestionPipeline
@@ -13,6 +14,8 @@ from app.integrations.steam.exceptions import (
     SteamRateLimitError,
     SteamTemporaryServerError,
 )
+from app.services.analytics_service import AnalyticsService
+from app.services.inference_pipeline_service import InferencePipelineService
 from app.workers.celery_app import celery_app
 
 logger = logging.getLogger("steamscoop.workers.tasks")
@@ -76,5 +79,171 @@ def cancel_ingestion_job(job_id: str) -> dict[str, Any]:
             "status": job.status,
             "finished_at": job.finished_at.isoformat() if job.finished_at else None,
         }
+    finally:
+        db.close()
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    max_retries=3,
+    name="app.workers.tasks.process_review_batch",
+)
+def process_review_batch(
+    self: Task,
+    game_id: str,
+    batch_size: int = 100,
+    run_topics: bool = True,
+    refresh_aggregates: bool = True,
+) -> dict[str, Any]:
+    """Execute complete ML batch inference pipeline for a game in background worker.
+
+    Runs sentiment analysis, ABSA, and topic modeling with durable pipeline runs,
+    item-level tracking, and automatic aggregate refresh upon completion.
+    """
+    logger.info(
+        "Starting ML batch inference for game %s (attempt=%d)", game_id, self.request.retries
+    )
+    db = SessionLocal()
+    try:
+        service = InferencePipelineService(session=db)
+        runs = service.run_full_nlp_pipeline(
+            game_id=uuid.UUID(game_id),
+            batch_size=batch_size,
+            run_topics=run_topics,
+        )
+
+        results = {
+            task: {
+                "run_id": str(run.id),
+                "status": run.status,
+                "input_count": run.input_count,
+                "success_count": run.success_count,
+                "failure_count": run.failure_count,
+            }
+            for task, run in runs.items()
+        }
+
+        if refresh_aggregates:
+            analytics_svc = AnalyticsService(session=db)
+            agg_result = analytics_svc.aggregate_game(game_id=uuid.UUID(game_id))
+            results["analytics"] = agg_result
+
+        return results
+    except (OperationalError, DatabaseError) as exc:
+        delay = min(15 * (2**self.request.retries), 180)
+        logger.warning(
+            "Database transient failure in process_review_batch (%s): %s. Retrying in %ds",
+            game_id,
+            exc,
+            delay,
+        )
+        raise self.retry(exc=exc, countdown=int(delay)) from exc
+    except Exception as exc:
+        logger.exception("ML batch inference failed permanently for game %s: %s", game_id, exc)
+        raise
+    finally:
+        db.close()
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    max_retries=3,
+    name="app.workers.tasks.aggregate_game_analytics",
+)
+def aggregate_game_analytics(
+    self: Task,
+    game_id: str,
+    period_types: list[str] | None = None,
+    model_version_key: str = "baseline",
+) -> dict[str, Any]:
+    """Execute time-bucketed analytics aggregation for a game in background worker."""
+    logger.info(
+        "Starting analytics aggregation for game %s (version=%s, attempt=%d)",
+        game_id,
+        model_version_key,
+        self.request.retries,
+    )
+    db = SessionLocal()
+    try:
+        service = AnalyticsService(session=db)
+        result = service.aggregate_game(
+            game_id=uuid.UUID(game_id),
+            period_types=period_types,
+            model_version_key=model_version_key,
+        )
+        return result
+    except (OperationalError, DatabaseError) as exc:
+        delay = min(10 * (2**self.request.retries), 120)
+        logger.warning(
+            "Transient failure in aggregate_game_analytics (%s): %s. Retrying in %ds",
+            game_id,
+            exc,
+            delay,
+        )
+        raise self.retry(exc=exc, countdown=int(delay)) from exc
+    except Exception as exc:
+        logger.exception("Analytics aggregation failed for game %s: %s", game_id, exc)
+        raise
+    finally:
+        db.close()
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    bind=True,
+    max_retries=3,
+    name="app.workers.tasks.reprocess_game_pipeline",
+)
+def reprocess_game_pipeline(
+    self: Task,
+    game_id: str,
+    failed_pipeline_run_id: str | None = None,
+) -> dict[str, Any]:
+    """Reprocess failed inference items or backfill game predictions and refresh aggregates."""
+    logger.info(
+        "Starting reprocessing for game %s (run_id=%s, attempt=%d)",
+        game_id,
+        failed_pipeline_run_id,
+        self.request.retries,
+    )
+    db = SessionLocal()
+    try:
+        service = InferencePipelineService(session=db)
+        if failed_pipeline_run_id:
+            reprocessed_run = service.reprocess_failed_items(
+                failed_pipeline_run_id=uuid.UUID(failed_pipeline_run_id)
+            )
+            result: dict[str, Any] = {
+                "reprocessed_run_id": str(reprocessed_run.id),
+                "status": reprocessed_run.status,
+                "success_count": reprocessed_run.success_count,
+                "failure_count": reprocessed_run.failure_count,
+            }
+        else:
+            runs = service.run_full_nlp_pipeline(game_id=uuid.UUID(game_id))
+            result = {
+                task: {
+                    "run_id": str(run.id),
+                    "status": run.status,
+                    "success_count": run.success_count,
+                }
+                for task, run in runs.items()
+            }
+
+        analytics_svc = AnalyticsService(session=db)
+        agg_result = analytics_svc.aggregate_game(game_id=uuid.UUID(game_id))
+        result["analytics"] = agg_result
+        return result
+    except (OperationalError, DatabaseError) as exc:
+        delay = min(15 * (2**self.request.retries), 180)
+        logger.warning(
+            "Transient failure in reprocess_game_pipeline (%s): %s. Retrying in %ds",
+            game_id,
+            exc,
+            delay,
+        )
+        raise self.retry(exc=exc, countdown=int(delay)) from exc
+    except Exception as exc:
+        logger.exception("Reprocessing failed for game %s: %s", game_id, exc)
+        raise
     finally:
         db.close()

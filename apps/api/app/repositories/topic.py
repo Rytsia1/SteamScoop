@@ -173,4 +173,3 @@ class TopicRepository(BaseRepository[Topic]):
             .limit(limit)
         )
         return self.session.scalars(stmt).all()
-

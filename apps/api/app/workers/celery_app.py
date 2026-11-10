@@ -25,6 +25,9 @@ celery_app.conf.update(
     task_routes={
         "app.workers.tasks.ingest_game_reviews": {"queue": "ingestion"},
         "app.workers.tasks.cancel_ingestion_job": {"queue": "ingestion"},
+        "app.workers.tasks.process_review_batch": {"queue": "ml_inference"},
+        "app.workers.tasks.aggregate_game_analytics": {"queue": "analytics"},
+        "app.workers.tasks.reprocess_game_pipeline": {"queue": "ml_inference"},
     },
 )
 
