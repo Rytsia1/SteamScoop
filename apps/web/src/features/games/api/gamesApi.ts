@@ -11,17 +11,20 @@ import { PaginationMeta } from "../../../types/api";
 export async function fetchGames(
   params?: GameFilterParams
 ): Promise<{ items: GameItem[]; pagination?: PaginationMeta | null }> {
-  const queryParams: Record<string, string | number> = {};
-  if (params?.q) queryParams.q = params.q;
-  if (params?.genre) queryParams.genre = params.genre;
-  if (params?.sort) queryParams.sort = params.sort;
-  if (params?.catalog_status) queryParams.catalog_status = params.catalog_status;
-  if (params?.status && !params.catalog_status) queryParams.catalog_status = params.status;
-  if (params?.limit) queryParams.limit = params.limit;
-  if (params?.cursor) queryParams.cursor = params.cursor;
-
+  // apiClient drops undefined / empty values from the query string
   const result = await apiClientWithMeta<GameItem[]>("/games", {
-    params: queryParams,
+    params: {
+      q: params?.q,
+      genre: params?.genre,
+      sort: params?.sort,
+      catalog_status: params?.catalog_status,
+      is_free: params?.is_free,
+      year_from: params?.year_from,
+      year_to: params?.year_to,
+      upcoming: params?.upcoming || undefined,
+      limit: params?.limit,
+      cursor: params?.cursor,
+    },
   });
 
   return {
@@ -56,6 +59,18 @@ export async function fetchGameSuggestions(
     release_date: g.release_date,
     genres: g.genres || [],
   }));
+}
+
+export async function fetchGenres(): Promise<string[]> {
+  return apiClient<string[]>("/games/genres");
+}
+
+export function useGenres() {
+  return useQuery({
+    queryKey: ["gameGenres"],
+    queryFn: fetchGenres,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+  });
 }
 
 export function useGames(params?: GameFilterParams) {

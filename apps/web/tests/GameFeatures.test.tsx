@@ -83,8 +83,15 @@ describe("Game Feature Components", () => {
           onStatusChange={handleStatusChange}
           genreFilter="Action"
           onGenreChange={handleGenreChange}
+          priceFilter=""
+          onPriceChange={vi.fn()}
+          yearFrom=""
+          onYearFromChange={vi.fn()}
+          yearTo=""
+          onYearToChange={vi.fn()}
           sortOption="name_asc"
           onSortChange={handleSortChange}
+          hasActiveFilters={true}
           onReset={handleReset}
         />
       </QueryClientProvider>

@@ -1,25 +1,39 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Search, X, Loader2, ArrowRight } from "lucide-react";
 import { Select } from "../../../components/ui/Select";
+import { Input } from "../../../components/ui/Input";
 import { Button } from "../../../components/ui/Button";
-import { useGameSuggestions } from "../api/gamesApi";
+import { useGameSuggestions, useGenres } from "../api/gamesApi";
 import { Link } from "../../../app/router/Router";
 import { gameOverviewPath } from "../../../app/router/routes";
 import { GameSortOption } from "../types/game";
+import { useDebouncedValue } from "../../../lib/useDebouncedValue";
 import { clsx } from "clsx";
+
+export type PriceFilter = "" | "free" | "paid";
 
 export interface GameSearchFiltersProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   statusFilter: string;
   onStatusChange: (status: string) => void;
+  /** Hidden on the upcoming view, where both indexed and pending games are listed. */
+  showStatusFilter?: boolean;
   genreFilter: string;
   onGenreChange: (genre: string) => void;
+  priceFilter: PriceFilter;
+  onPriceChange: (price: PriceFilter) => void;
+  yearFrom: string;
+  onYearFromChange: (year: string) => void;
+  yearTo: string;
+  onYearToChange: (year: string) => void;
   sortOption: GameSortOption | string;
   onSortChange: (sort: GameSortOption) => void;
+  hasActiveFilters: boolean;
   onReset: () => void;
 }
 
+/** Fallback while /games/genres loads or if it returns nothing. */
 const COMMON_GENRES = [
   "Action",
   "Adventure",
@@ -30,22 +44,58 @@ const COMMON_GENRES = [
   "Shooter",
 ];
 
+const STATUS_OPTIONS = [
+  { value: "indexed", label: "Indexed (Full Analytics)" },
+  { value: "pending", label: "Pending Ingestion" },
+];
+
+const SORT_OPTIONS = [
+  { value: "name_asc", label: "Title: A to Z" },
+  { value: "name_desc", label: "Title: Z to A" },
+  { value: "release_desc", label: "Release: Newest First" },
+  { value: "release_asc", label: "Release: Oldest First" },
+  { value: "recently_updated", label: "Recently Updated" },
+];
+
+const PRICE_OPTIONS = [
+  { value: "", label: "Free & Paid" },
+  { value: "free", label: "Free to Play" },
+  { value: "paid", label: "Paid" },
+];
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName);
+}
+
 export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
   searchQuery,
   onSearchChange,
   statusFilter,
   onStatusChange,
+  showStatusFilter = true,
   genreFilter,
   onGenreChange,
+  priceFilter,
+  onPriceChange,
+  yearFrom,
+  onYearFromChange,
+  yearTo,
+  onYearToChange,
   sortOption,
   onSortChange,
+  hasActiveFilters,
   onReset,
 }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: suggestions, isLoading: isLoadingSuggestions } = useGameSuggestions(searchQuery);
+  const debouncedQuery = useDebouncedValue(searchQuery, 300);
+  const { data: suggestions, isLoading: isLoadingSuggestions } = useGameSuggestions(debouncedQuery);
+  const { data: genres } = useGenres();
+  const genreList = genres && genres.length > 0 ? genres : COMMON_GENRES;
 
   // Close suggestions when clicking outside
   useEffect(() => {
@@ -60,6 +110,20 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // "/" focuses the search box (matches the hint shown in the header)
+  useEffect(() => {
+    const handleSlash = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey || isTypingTarget(e.target)) {
+        return;
+      }
+      e.preventDefault();
+      searchInputRef.current?.focus();
+    };
+
+    document.addEventListener("keydown", handleSlash);
+    return () => document.removeEventListener("keydown", handleSlash);
   }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -81,28 +145,6 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
       setShowSuggestions(false);
     }
   };
-
-  const statusOptions = [
-    { value: "", label: "All Catalog Statuses" },
-    { value: "indexed", label: "Indexed (Full Analytics)" },
-    { value: "pending", label: "Pending Ingestion" },
-    { value: "disabled", label: "Disabled" },
-  ];
-
-  const sortOptions = [
-    { value: "name_asc", label: "Title: A to Z" },
-    { value: "name_desc", label: "Title: Z to A" },
-    { value: "recently_updated", label: "Recently Updated" },
-  ];
-
-  const genreOptions = [
-    { value: "", label: "All Genres (Select)" },
-    ...COMMON_GENRES.map((g) => ({ value: g, label: g })),
-  ];
-
-  const hasActiveFilters = Boolean(
-    searchQuery || statusFilter || genreFilter || (sortOption && sortOption !== "name_asc")
-  );
 
   return (
     <div
@@ -126,14 +168,16 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
           </div>
 
           <input
+            ref={searchInputRef}
             id="game-search-input"
             type="search"
             role="combobox"
             aria-autocomplete="list"
             aria-expanded={showSuggestions && Boolean(suggestions && suggestions.length > 0)}
             aria-controls="search-suggestions-list"
+            aria-keyshortcuts="/"
             autoComplete="off"
-            placeholder="Type game name (e.g., 'Portal', 'Elden Ring', 'Hades')..."
+            placeholder="Type a game name or App ID (e.g., 'Hades', '1145360')..."
             value={searchQuery}
             onChange={(e) => {
               onSearchChange(e.target.value);
@@ -218,30 +262,17 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
         )}
       </div>
 
-      {/* Quick Genre Pills */}
+      {/* Genre Pills */}
       <fieldset className="space-y-2 border-0 p-0 m-0">
-        <legend className="text-xs font-semibold text-slate-400">
-          Popular Genres:
-        </legend>
+        <legend className="text-xs font-semibold text-slate-400">Genres:</legend>
         <div className="flex flex-wrap gap-1.5 items-center">
-          <button
-            type="button"
-            onClick={() => onGenreChange("")}
-            className={clsx(
-              "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400",
-              genreFilter === ""
-                ? "bg-sky-500 text-white font-semibold shadow-md shadow-sky-500/20"
-                : "bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60"
-            )}
-          >
-            All Genres
-          </button>
-          {COMMON_GENRES.map((genre) => {
+          {["", ...genreList].map((genre) => {
             const isActive = genreFilter.toLowerCase() === genre.toLowerCase();
             return (
               <button
-                key={genre}
+                key={genre || "all"}
                 type="button"
+                aria-pressed={isActive}
                 onClick={() => onGenreChange(isActive ? "" : genre)}
                 className={clsx(
                   "px-3 py-1.5 rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-400",
@@ -250,43 +281,67 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
                     : "bg-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white border border-slate-700/60"
                 )}
               >
-                {genre}
+                {genre || "All Genres"}
               </button>
             );
           })}
         </div>
       </fieldset>
 
-      {/* Secondary Controls: Sorting, Status Filter, Genre Dropdown, Reset */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-slate-800/80 items-end">
-        <div>
+      {/* Secondary Controls: Sorting, Price, Release Year, Status, Reset */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-800/80 items-end">
+        <div className="col-span-2 lg:col-span-1">
           <Select
             label="Sort Catalog By"
             value={sortOption}
             onChange={(e) => onSortChange(e.target.value as GameSortOption)}
-            options={sortOptions}
+            options={SORT_OPTIONS}
           />
         </div>
 
-        <div>
+        <div className="col-span-2 lg:col-span-1">
           <Select
-            label="Genre (All Options)"
-            value={genreFilter}
-            onChange={(e) => onGenreChange(e.target.value)}
-            options={genreOptions}
+            label="Price"
+            value={priceFilter}
+            onChange={(e) => onPriceChange(e.target.value as PriceFilter)}
+            options={PRICE_OPTIONS}
           />
         </div>
 
-        <div>
-          <Select
-            label="Catalog Status"
-            value={statusFilter}
-            onChange={(e) => onStatusChange(e.target.value)}
-            options={statusOptions}
-          />
-        </div>
+        <Input
+          label="Released From"
+          type="number"
+          inputMode="numeric"
+          min={1970}
+          max={2100}
+          placeholder="Year"
+          value={yearFrom}
+          onChange={(e) => onYearFromChange(e.target.value)}
+        />
 
-        <div>
+        <Input
+          label="Released To"
+          type="number"
+          inputMode="numeric"
+          min={1970}
+          max={2100}
+          placeholder="Year"
+          value={yearTo}
+          onChange={(e) => onYearToChange(e.target.value)}
+        />
+
+        {showStatusFilter && (
+          <div className="col-span-2 lg:col-span-1">
+            <Select
+              label="Catalog Status"
+              value={statusFilter}
+              onChange={(e) => onStatusChange(e.target.value)}
+              options={STATUS_OPTIONS}
+            />
+          </div>
+        )}
+
+        <div className="col-span-2 lg:col-span-1">
           {hasActiveFilters ? (
             <Button
               type="button"
@@ -299,9 +354,7 @@ export const GameSearchFilters: React.FC<GameSearchFiltersProps> = ({
               Reset Filters
             </Button>
           ) : (
-            <div className="text-[11px] text-slate-500 py-2.5 text-center">
-              Filters clear
-            </div>
+            <div className="text-[11px] text-slate-500 py-2.5 text-center">Filters clear</div>
           )}
         </div>
       </div>

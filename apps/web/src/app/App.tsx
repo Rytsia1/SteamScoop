@@ -25,6 +25,7 @@ export const App: React.FC = () => {
             <Routes fallback={<NotFoundPage />}>
               <Route path="/" component={GamesCatalogPage} />
               <Route path="/games" component={GamesCatalogPage} />
+              <Route path="/upcoming" component={GamesCatalogPage} />
               <Route path="/games/:gameId" component={GameOverviewPage} />
               <Route path="/games/:gameId/reviews" component={GameReviewsPage} />
               <Route path="/compare" component={GameComparisonPage} />

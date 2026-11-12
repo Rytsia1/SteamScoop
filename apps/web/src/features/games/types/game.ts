@@ -1,6 +1,11 @@
 export type GameCatalogStatus = "pending" | "indexed" | "failed" | "disabled";
 
-export type GameSortOption = "name_asc" | "name_desc" | "recently_updated";
+export type GameSortOption =
+  | "name_asc"
+  | "name_desc"
+  | "recently_updated"
+  | "release_desc"
+  | "release_asc";
 
 export interface GameItem {
   id: string;
@@ -20,6 +25,7 @@ export interface GameItem {
   categories?: string[];
   tags?: string[];
   release_date?: string | null;
+  is_free?: boolean | null;
   review_count?: number;
   steam_positive_percentage?: number | null;
   model_sentiment_positive_rate?: number | null;
@@ -73,10 +79,22 @@ export interface GameFilterParams {
   q?: string;
   genre?: string;
   catalog_status?: string;
-  status?: string;
+  is_free?: boolean;
+  year_from?: number;
+  year_to?: number;
+  upcoming?: boolean;
   sort?: GameSortOption | string;
   limit?: number;
   cursor?: string;
+}
+
+/** Whole days until a future release date, or null when released / undated. */
+export function daysUntilRelease(releaseDate: string | null | undefined, now = Date.now()): number | null {
+  if (!releaseDate) return null;
+  const releaseMs = Date.parse(releaseDate);
+  if (Number.isNaN(releaseMs)) return null;
+  const days = Math.ceil((releaseMs - now) / 86_400_000);
+  return days > 0 ? days : null;
 }
 
 export interface GameSuggestionItem {

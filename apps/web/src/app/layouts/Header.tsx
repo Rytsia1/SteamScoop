@@ -6,6 +6,7 @@ import {
   Menu,
   X,
   BarChart3,
+  CalendarClock,
   GitCompare,
   BookOpen,
   Activity,
@@ -26,6 +27,7 @@ export const Header: React.FC = () => {
 
   const navLinks = [
     { label: "Games Catalog", to: ROUTES.HOME, icon: BarChart3 },
+    { label: "Upcoming", to: ROUTES.UPCOMING, icon: CalendarClock },
     { label: "Compare Games", to: ROUTES.COMPARE, icon: GitCompare },
     { label: "Workspace", to: ROUTES.WORKSPACE, icon: Briefcase },
     ...(isAdmin ? [{ label: "Admin", to: ROUTES.ADMIN, icon: ShieldAlert }] : []),

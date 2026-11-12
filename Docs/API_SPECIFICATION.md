@@ -403,6 +403,8 @@ restricted readiness endpoint may test dependencies.
   `GET`             `/games`                       Public            Search/list indexed
                                                                      games
 
+  `GET`             `/games/genres`                Public            Genre filter values
+
   `GET`             `/games/{game_id}`             Public            Game details
 
   `GET`             `/games/{game_id}/overview`    Public            Summary metrics and
@@ -593,14 +595,34 @@ Search and list indexed games.
   Parameter          Type                          Required Rules
   ------------------ ---------------- --------------------- --------------------
   `q`                string                              No Search game name;
-                                                            bounded length
+                                                            all-digit values
+                                                            also match
+                                                            `steam_app_id`
+                                                            exactly; bounded
+                                                            length
 
   `genre`            string                              No Exact supported
-                                                            genre filter
+                                                            genre filter (see
+                                                            `GET /games/genres`)
 
-  `catalog_status`   string                              No Public endpoint
-                                                            normally exposes
-                                                            indexed games only
+  `catalog_status`   string                              No `indexed` (default)
+                                                            or `pending`;
+                                                            ignored when
+                                                            `upcoming=true`
+
+  `is_free`          boolean                             No Free-to-play filter
+
+  `year_from`        integer                             No Release year lower
+                                                            bound (1970-2100)
+
+  `year_to`          integer                             No Release year upper
+                                                            bound, inclusive
+
+  `upcoming`         boolean                             No Only games whose
+                                                            `release_date` is
+                                                            after today; covers
+                                                            `indexed` and
+                                                            `pending`
 
   `limit`            integer                             No Default 20, max 100
 
@@ -608,7 +630,11 @@ Search and list indexed games.
 
   `sort`             string                              No `name_asc`,
                                                             `name_desc`,
-                                                            `recently_updated`
+                                                            `recently_updated`,
+                                                            `release_desc`,
+                                                            `release_asc`
+                                                            (release sorts omit
+                                                            undated games)
   ------------------------------------------------------------------------------
 
 **Response `200`**
@@ -621,9 +647,15 @@ Search and list indexed games.
       "steam_app_id": 123456,
       "name": "Example Game",
       "header_image_url": "https://example.invalid/header.jpg",
+      "developers": ["Example Studio"],
       "genres": ["Action", "RPG"],
       "release_date": "2024-05-01",
-      "catalog_status": "indexed"
+      "is_free": false,
+      "catalog_status": "indexed",
+      "is_active": true,
+      "review_count": 1200,
+      "steam_positive_percentage": 87.5,
+      "model_sentiment_positive_rate": 0.8123
     }
   ],
   "meta": {
@@ -640,7 +672,15 @@ Search and list indexed games.
 Public endpoint behavior: - Only publicly indexed/active games are
 returned. - Internal indexing failures and administrative notes are not
 exposed. - `steam_app_id` is a public Steam application identifier, not
-a user identifier.
+a user identifier. - `steam_positive_percentage` (0-100) and
+`model_sentiment_positive_rate` (0-1) are computed over stored reviews
+and are `null` when no votes / classifications exist.
+
+### 7.1a `GET /games/genres`
+
+Distinct genre labels across publicly indexed games, sorted
+alphabetically. Response `data` is `string[]`, e.g.
+`["Action", "Indie", "RPG"]`.
 
 ### 7.2 `GET /games/{game_id}`
 

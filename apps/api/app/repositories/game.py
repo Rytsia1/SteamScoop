@@ -1,15 +1,37 @@
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy import and_, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import InstrumentedAttribute, Session
 
 from app.core.cursor import decode_cursor, encode_cursor
+from app.core.exceptions import InvalidCursorError
 from app.models.game import Game
 from app.models.review import Review
+from app.models.sentiment import SentimentPrediction
 from app.repositories.base import BaseRepository
+
+# sort key -> (column, descending). Ties always break on Game.id in the same direction.
+_SORTS: dict[str, tuple[InstrumentedAttribute[Any], bool]] = {
+    "name_asc": (Game.name, False),
+    "name_desc": (Game.name, True),
+    "recently_updated": (Game.updated_at, True),
+    "release_desc": (Game.release_date, True),
+    "release_asc": (Game.release_date, False),
+}
+
+
+def _parse_cursor_value(column: InstrumentedAttribute[Any], raw: Any) -> Any:
+    """Turn the JSON cursor value back into the sort column's Python type."""
+    if column is Game.updated_at:
+        return datetime.fromisoformat(raw)
+    if column is Game.release_date:
+        return date.fromisoformat(raw)
+    if not isinstance(raw, str):
+        raise TypeError("Expected string cursor value")
+    return raw
 
 
 class GameRepository(BaseRepository[Game]):
@@ -54,57 +76,69 @@ class GameRepository(BaseRepository[Game]):
         self,
         q: str | None = None,
         genre: str | None = None,
-        catalog_status: str | None = "indexed",
+        catalog_statuses: Sequence[str] | None = ("indexed",),
         sort: str = "name_asc",
         cursor: str | None = None,
         limit: int = 20,
+        is_free: bool | None = None,
+        year_from: int | None = None,
+        year_to: int | None = None,
+        upcoming: bool = False,
     ) -> tuple[Sequence[Game], bool, str | None]:
         """Perform keyset-paginated search and listing across public catalog games."""
         stmt = select(Game).where(Game.is_active.is_(True))
 
-        if catalog_status is not None:
-            stmt = stmt.where(Game.catalog_status == catalog_status)
+        if catalog_statuses:
+            stmt = stmt.where(Game.catalog_status.in_(catalog_statuses))
 
         if q is not None and q.strip():
-            stmt = stmt.where(Game.name.ilike(f"%{q.strip()}%"))
+            term = q.strip()
+            name_match = Game.name.ilike(f"%{term}%")
+            # Numeric queries also match the Steam App ID exactly
+            stmt = stmt.where(
+                or_(name_match, Game.steam_app_id == int(term)) if term.isdigit() else name_match
+            )
 
         if genre is not None and genre.strip():
             # Check JSONB array of genres contains the given genre string
-            genre_val = genre.strip()
-            stmt = stmt.where(Game.genres.contains([genre_val]))
+            stmt = stmt.where(Game.genres.contains([genre.strip()]))
 
-        # Apply sort ordering and cursor filters
-        if sort == "name_desc":
-            if cursor:
-                cursor_name, cursor_id = decode_cursor(cursor)
+        if is_free is not None:
+            stmt = stmt.where(Game.is_free.is_(is_free))
+        if year_from is not None:
+            stmt = stmt.where(Game.release_date >= date(year_from, 1, 1))
+        if year_to is not None:
+            stmt = stmt.where(Game.release_date < date(year_to + 1, 1, 1))
+        if upcoming:
+            stmt = stmt.where(Game.release_date > func.current_date())
+
+        column, descending = _SORTS.get(sort, _SORTS["name_asc"])
+        if column is Game.release_date:
+            # ponytail: undated games are left out of date-sorted lists;
+            # add a NULLS LAST keyset branch if they need to appear.
+            stmt = stmt.where(Game.release_date.is_not(None))
+
+        if cursor:
+            raw_value, cursor_id = decode_cursor(cursor)
+            try:
+                cursor_value = _parse_cursor_value(column, raw_value)
+            except (TypeError, ValueError) as exc:
+                raise InvalidCursorError(
+                    message="The provided pagination cursor is invalid or malformed."
+                ) from exc
+            if descending:
                 stmt = stmt.where(
-                    or_(
-                        Game.name < cursor_name,
-                        and_(Game.name == cursor_name, Game.id < cursor_id),
-                    )
+                    or_(column < cursor_value, and_(column == cursor_value, Game.id < cursor_id))
                 )
-            stmt = stmt.order_by(Game.name.desc(), Game.id.desc())
-        elif sort == "recently_updated":
-            if cursor:
-                cursor_ts_str, cursor_id = decode_cursor(cursor)
-                cursor_dt = datetime.fromisoformat(cursor_ts_str)
+            else:
                 stmt = stmt.where(
-                    or_(
-                        Game.updated_at < cursor_dt,
-                        and_(Game.updated_at == cursor_dt, Game.id < cursor_id),
-                    )
+                    or_(column > cursor_value, and_(column == cursor_value, Game.id > cursor_id))
                 )
-            stmt = stmt.order_by(Game.updated_at.desc(), Game.id.desc())
-        else:  # name_asc (default)
-            if cursor:
-                cursor_name, cursor_id = decode_cursor(cursor)
-                stmt = stmt.where(
-                    or_(
-                        Game.name > cursor_name,
-                        and_(Game.name == cursor_name, Game.id > cursor_id),
-                    )
-                )
-            stmt = stmt.order_by(Game.name.asc(), Game.id.asc())
+
+        if descending:
+            stmt = stmt.order_by(column.desc(), Game.id.desc())
+        else:
+            stmt = stmt.order_by(column.asc(), Game.id.asc())
 
         # Fetch limit + 1 to check for has_more
         results = list(self.session.scalars(stmt.limit(limit + 1)).all())
@@ -114,14 +148,63 @@ class GameRepository(BaseRepository[Game]):
         next_cursor = None
         if has_more and items:
             last_item = items[-1]
-            if sort == "name_desc":
-                next_cursor = encode_cursor(last_item.name, last_item.id)
-            elif sort == "recently_updated":
-                next_cursor = encode_cursor(last_item.updated_at.isoformat(), last_item.id)
-            else:
-                next_cursor = encode_cursor(last_item.name, last_item.id)
+            value = getattr(last_item, column.key)
+            next_cursor = encode_cursor(
+                value.isoformat() if isinstance(value, date) else value, last_item.id
+            )
 
         return items, has_more, next_cursor
+
+    def get_list_metrics(
+        self, game_ids: Sequence[uuid.UUID]
+    ) -> dict[uuid.UUID, tuple[int, int, int, int, int]]:
+        """Per-game (reviews, recommended, not_recommended, positive_sentiment, classified).
+
+        Two grouped queries for a whole page of games, so listing stays free of N+1 lookups.
+        """
+        if not game_ids:
+            return {}
+
+        review_stmt = (
+            select(
+                Review.game_id,
+                func.count(Review.id),
+                func.count(Review.id).filter(Review.voted_up.is_(True)),
+                func.count(Review.id).filter(Review.voted_up.is_(False)),
+            )
+            .where(Review.game_id.in_(game_ids))
+            .group_by(Review.game_id)
+        )
+        sentiment_stmt = (
+            select(
+                Review.game_id,
+                func.count(SentimentPrediction.id).filter(SentimentPrediction.label == "positive"),
+                func.count(SentimentPrediction.id),
+            )
+            .join(SentimentPrediction, SentimentPrediction.review_id == Review.id)
+            .where(Review.game_id.in_(game_ids), SentimentPrediction.is_current.is_(True))
+            .group_by(Review.game_id)
+        )
+
+        sentiment = {
+            row[0]: (row[1], row[2]) for row in self.session.execute(sentiment_stmt).all()
+        }
+        metrics: dict[uuid.UUID, tuple[int, int, int, int, int]] = {}
+        for game_id, total, rec, not_rec in self.session.execute(review_stmt).all():
+            pos, classified = sentiment.get(game_id, (0, 0))
+            metrics[game_id] = (total, rec, not_rec, pos, classified)
+        return metrics
+
+    def list_genres(self) -> list[str]:
+        """Distinct genre labels across publicly listed games, alphabetically."""
+        genre = func.jsonb_array_elements_text(Game.genres).label("genre")
+        stmt = (
+            select(genre)
+            .where(Game.is_active.is_(True), Game.catalog_status == "indexed")
+            .distinct()
+            .order_by(genre)
+        )
+        return list(self.session.scalars(stmt).all())
 
     def get_game_data_coverage(self, game_id: uuid.UUID) -> tuple[datetime | None, int, list[str]]:
         """Compute live coverage metadata: (latest_collection_at, total_reviews, languages)."""

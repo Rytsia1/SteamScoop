@@ -96,28 +96,45 @@ class GameService:
 
     def search_games(self, params: GameQueryParams) -> tuple[list[GameListItem], PaginationMeta]:
         """Search and list catalog games with filtering and keyset pagination."""
+        # Unreleased games rarely have reviews yet, so they are usually still 'pending'
+        statuses = ("indexed", "pending") if params.upcoming else (params.catalog_status,)
         games, has_more, next_cursor = self.game_repo.search_catalog(
             q=params.q,
             genre=params.genre,
-            catalog_status="indexed",
+            catalog_statuses=statuses,
             sort=params.sort,
             cursor=params.cursor,
             limit=params.limit,
+            is_free=params.is_free,
+            year_from=params.year_from,
+            year_to=params.year_to,
+            upcoming=params.upcoming,
         )
+        metrics = self.game_repo.get_list_metrics([g.id for g in games])
 
-        items = [
-            GameListItem(
-                id=g.id,
-                steam_app_id=g.steam_app_id,
-                name=g.name,
-                header_image_url=g.header_image_url,
-                genres=g.genres,
-                release_date=g.release_date,
-                catalog_status=g.catalog_status,
-                is_active=g.is_active,
+        items = []
+        for g in games:
+            total, rec, not_rec, pos, classified = metrics.get(g.id, (0, 0, 0, 0, 0))
+            voted = rec + not_rec
+            items.append(
+                GameListItem(
+                    id=g.id,
+                    steam_app_id=g.steam_app_id,
+                    name=g.name,
+                    header_image_url=g.header_image_url,
+                    developers=g.developers,
+                    genres=g.genres,
+                    release_date=g.release_date,
+                    is_free=g.is_free,
+                    catalog_status=g.catalog_status,
+                    is_active=g.is_active,
+                    review_count=total,
+                    steam_positive_percentage=round(rec / voted * 100, 2) if voted else None,
+                    model_sentiment_positive_rate=(
+                        round(pos / classified, 4) if classified else None
+                    ),
+                )
             )
-            for g in games
-        ]
 
         pagination = PaginationMeta(
             limit=params.limit,
@@ -125,6 +142,10 @@ class GameService:
             next_cursor=next_cursor,
         )
         return items, pagination
+
+    def list_genres(self) -> list[str]:
+        """Distinct genres available for catalog filtering."""
+        return self.game_repo.list_genres()
 
     def get_game_overview(
         self,

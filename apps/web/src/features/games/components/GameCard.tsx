@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { GameItem, getGameName, getGameDeveloper } from "../types/game";
+import { GameItem, getGameName, getGameDeveloper, daysUntilRelease } from "../types/game";
 import { Card, CardContent } from "../../../components/ui/Card";
 import { Badge } from "../../../components/ui/Badge";
 import { Link } from "../../../app/router/Router";
 import { gameOverviewPath, gameReviewsPath } from "../../../app/router/routes";
+import { FavoriteButton } from "./FavoriteButton";
 import {
   ThumbsUp,
   Brain,
   MessagesSquare,
   Calendar,
+  CalendarClock,
   ImageOff,
   ChevronRight,
 } from "lucide-react";
@@ -36,6 +38,8 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
         day: "numeric",
       })
     : "TBA / Unavailable";
+
+  const daysToRelease = daysUntilRelease(game.release_date);
 
   const visibleGenres = (game.genres || []).slice(0, 3);
   const extraGenresCount = (game.genres || []).length - visibleGenres.length;
@@ -76,12 +80,17 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
       <CardContent className="p-5 flex-1 flex flex-col justify-between gap-4">
         {/* Title, Developer & Release Date */}
         <div className="space-y-1.5">
-          <Link
-            to={gameOverviewPath(game.id)}
-            className="text-base font-bold text-white group-hover:text-sky-400 transition-colors line-clamp-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 rounded"
-          >
-            {title}
-          </Link>
+          <div className="flex items-start justify-between gap-2">
+            <Link
+              to={gameOverviewPath(game.id)}
+              className="text-base font-bold text-white group-hover:text-sky-400 transition-colors line-clamp-1 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 rounded"
+            >
+              {title}
+            </Link>
+            <FavoriteButton
+              game={{ id: game.id, name: title, header_image_url: game.header_image_url }}
+            />
+          </div>
 
           <div className="flex items-center justify-between text-xs text-slate-400">
             <span className="line-clamp-1 max-w-[60%]">{developer}</span>
@@ -113,7 +122,17 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
           )}
         </div>
 
-        {/* Intelligence Metric Comparison Strip */}
+        {/* Intelligence Metric Comparison Strip (unreleased games have no reviews yet) */}
+        {daysToRelease !== null ? (
+          <div className="pt-3 border-t border-slate-800/80">
+            <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-800/50 flex items-center gap-2 text-xs text-amber-300">
+              <CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />
+              <span className="font-semibold">
+                Releases in {daysToRelease} {daysToRelease === 1 ? "day" : "days"}
+              </span>
+            </div>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-2 pt-3 border-t border-slate-800/80 text-xs">
           {/* Steam Recommendation */}
           <div className="p-2 rounded-lg bg-slate-950/40 border border-slate-800/60 flex flex-col gap-0.5">
@@ -143,6 +162,7 @@ export const GameCard: React.FC<GameCardProps> = ({ game }) => {
             </span>
           </div>
         </div>
+        )}
 
         {/* Footer: Reviews count and Explore CTA */}
         <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs text-slate-400">

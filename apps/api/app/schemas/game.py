@@ -4,6 +4,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+GameSortOption = Literal["name_asc", "name_desc", "recently_updated", "release_desc", "release_asc"]
 
 class GameListItem(BaseModel):
     """Compact summary of a game for catalog listing and search results."""
@@ -14,10 +15,19 @@ class GameListItem(BaseModel):
     steam_app_id: int
     name: str
     header_image_url: str | None = None
+    developers: list[str] = Field(default_factory=list)
     genres: list[str] = Field(default_factory=list)
     release_date: date | None = None
+    is_free: bool | None = None
     catalog_status: str
     is_active: bool
+    review_count: int = Field(default=0, ge=0)
+    steam_positive_percentage: float | None = Field(
+        default=None, ge=0.0, le=100.0, description="Share of Steam 'Recommended' votes (0-100)"
+    )
+    model_sentiment_positive_rate: float | None = Field(
+        default=None, ge=0.0, le=1.0, description="Share of classified reviews labelled positive"
+    )
 
 
 class GameDataCoverage(BaseModel):
@@ -103,10 +113,14 @@ class GameQueryParams(BaseModel):
         max_length=50,
         description="Genre label filter",
     )
-    catalog_status: str | None = Field(
+    catalog_status: Literal["indexed", "pending"] = Field(
         default="indexed",
-        description="Catalog status filter",
+        description="Catalog status filter (ignored when upcoming=true)",
     )
+    is_free: bool | None = Field(default=None, description="Free-to-play filter")
+    year_from: int | None = Field(default=None, ge=1970, le=2100, description="Released from year")
+    year_to: int | None = Field(default=None, ge=1970, le=2100, description="Released up to year")
+    upcoming: bool = Field(default=False, description="Only games with a future release date")
     limit: int = Field(
         default=20,
         ge=1,
@@ -117,7 +131,7 @@ class GameQueryParams(BaseModel):
         default=None,
         description="Opaque base64 cursor token",
     )
-    sort: Literal["name_asc", "name_desc", "recently_updated"] = Field(
+    sort: GameSortOption = Field(
         default="name_asc",
         description="Sort ordering",
     )

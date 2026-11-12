@@ -1,11 +1,117 @@
 import uuid
+from datetime import date, timedelta
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
+from app.models.game import Game
 from app.schemas.common import ResponseEnvelope
 from app.schemas.game import GameDetail, GameListItem
 from app.schemas.review import ReviewListItem
+
+
+@pytest.fixture
+def discovery_games(db_session: Session, sample_catalog: dict[str, Any]) -> dict[str, Game]:
+    """An unreleased pending game and a free-to-play indexed game, alongside sample_catalog."""
+    upcoming = Game(
+        steam_app_id=990001,
+        name="Zz Upcoming Test Game",
+        genres=["Strategy"],
+        release_date=date.today() + timedelta(days=30),
+        is_free=False,
+        catalog_status="pending",
+        is_active=True,
+    )
+    free = Game(
+        steam_app_id=990002,
+        name="Zz Free Test Game",
+        genres=["Shooter"],
+        release_date=date(2015, 6, 1),
+        is_free=True,
+        catalog_status="indexed",
+        is_active=True,
+    )
+    db_session.add_all([upcoming, free])
+    db_session.flush()
+    return {"upcoming": upcoming, "free": free}
+
+
+def test_list_games_search_by_steam_app_id(
+    client: TestClient, sample_catalog: dict[str, Any]
+) -> None:
+    data = client.get("/api/v1/games?q=1145360").json()["data"]
+    assert [g["steam_app_id"] for g in data] == [1145360]
+
+
+def test_list_games_free_and_year_filters(
+    client: TestClient, discovery_games: dict[str, Game]
+) -> None:
+    free = client.get("/api/v1/games?is_free=true&limit=100").json()["data"]
+    assert free and all(g["is_free"] is True for g in free)
+    assert "Zz Free Test Game" in {g["name"] for g in free}
+
+    paid = client.get("/api/v1/games?is_free=false&limit=100").json()["data"]
+    assert "Zz Free Test Game" not in {g["name"] for g in paid}
+
+    in_2015 = client.get("/api/v1/games?year_from=2015&year_to=2015&limit=100").json()["data"]
+    assert in_2015 and all(g["release_date"].startswith("2015") for g in in_2015)
+
+
+def test_list_games_upcoming(client: TestClient, discovery_games: dict[str, Game]) -> None:
+    # Pending + unreleased: hidden from the default catalog...
+    default_names = {g["name"] for g in client.get("/api/v1/games?limit=100").json()["data"]}
+    assert "Zz Upcoming Test Game" not in default_names
+
+    # ...but listed by the upcoming view, which only holds future-dated games
+    data = client.get("/api/v1/games?upcoming=true&sort=release_asc&limit=100").json()["data"]
+    assert "Zz Upcoming Test Game" in {g["name"] for g in data}
+    today = date.today().isoformat()
+    assert all(g["release_date"] > today for g in data)
+
+
+def test_list_games_catalog_status_is_honoured(
+    client: TestClient, discovery_games: dict[str, Game]
+) -> None:
+    data = client.get("/api/v1/games?catalog_status=pending&limit=100").json()["data"]
+    assert data and all(g["catalog_status"] == "pending" for g in data)
+
+    assert client.get("/api/v1/games?catalog_status=disabled").status_code == 422
+
+
+def test_list_games_release_sort_paginates(
+    client: TestClient, discovery_games: dict[str, Game]
+) -> None:
+    seen: list[str] = []
+    cursor: str | None = None
+    for _ in range(50):
+        url = "/api/v1/games?sort=release_desc&limit=1" + (f"&cursor={cursor}" if cursor else "")
+        body = client.get(url).json()
+        seen.extend(g["release_date"] for g in body["data"])
+        cursor = body["meta"]["pagination"]["next_cursor"]
+        if not cursor:
+            break
+    assert len(seen) >= 3
+    assert seen == sorted(seen, reverse=True)
+
+
+def test_list_games_includes_review_metrics(
+    client: TestClient, sample_catalog: dict[str, Any]
+) -> None:
+    hades = client.get("/api/v1/games?q=1145360").json()["data"][0]
+    # sample_catalog: 1 recommended + 1 not recommended; 1 positive + 1 negative prediction
+    assert hades["review_count"] >= 2
+    assert 0 <= hades["steam_positive_percentage"] <= 100
+    assert 0 <= hades["model_sentiment_positive_rate"] <= 1
+
+
+def test_list_game_genres(client: TestClient, sample_catalog: dict[str, Any]) -> None:
+    response = client.get("/api/v1/games/genres")
+    assert response.status_code == 200
+    genres = response.json()["data"]
+    assert {"Action", "RPG", "Indie"} <= set(genres)
+    assert genres == sorted(genres)
 
 
 def test_list_games_contract(client: TestClient, sample_catalog: dict[str, Any]) -> None:

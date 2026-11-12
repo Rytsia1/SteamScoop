@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, Path, Query
 
 from app.api.deps import get_game_service, get_request_id, get_review_service
 from app.schemas.common import MetaEnvelope, ResponseEnvelope
-from app.schemas.game import GameDetail, GameListItem, GameOverviewData, GameQueryParams
+from app.schemas.game import (
+    GameDetail,
+    GameListItem,
+    GameOverviewData,
+    GameQueryParams,
+    GameSortOption,
+)
 from app.schemas.review import ReviewListItem, ReviewQueryParams
 from app.services.game_service import GameService
 from app.services.review_service import ReviewService
@@ -28,9 +34,18 @@ async def list_games(
         default=None, max_length=100, description="Search term matching game name"
     ),
     genre: str | None = Query(default=None, max_length=50, description="Exact genre filter"),
-    sort: Literal["name_asc", "name_desc", "recently_updated"] = Query(
-        default="name_asc", description="Sort ordering"
+    catalog_status: Literal["indexed", "pending"] = Query(
+        default="indexed", description="Catalog status (ignored when upcoming=true)"
     ),
+    is_free: bool | None = Query(default=None, description="Free-to-play filter"),
+    year_from: int | None = Query(
+        default=None, ge=1970, le=2100, description="Released on or after this year"
+    ),
+    year_to: int | None = Query(
+        default=None, ge=1970, le=2100, description="Released on or before this year"
+    ),
+    upcoming: bool = Query(default=False, description="Only games with a future release date"),
+    sort: GameSortOption = Query(default="name_asc", description="Sort ordering"),
     limit: int = Query(default=20, ge=1, le=100, description="Page limit"),
     cursor: str | None = Query(default=None, description="Opaque pagination cursor token"),
     game_service: GameService = Depends(get_game_service),
@@ -39,6 +54,11 @@ async def list_games(
     params = GameQueryParams(
         q=q,
         genre=genre,
+        catalog_status=catalog_status,
+        is_free=is_free,
+        year_from=year_from,
+        year_to=year_to,
+        upcoming=upcoming,
         sort=sort,
         limit=limit,
         cursor=cursor,
@@ -54,6 +74,23 @@ async def list_games(
             timestamp=now_utc,
             pagination=pagination,
         ),
+    )
+
+
+@router.get(
+    "/games/genres",
+    response_model=ResponseEnvelope[list[str]],
+    summary="List Catalog Genres",
+    description="Distinct genre labels across publicly indexed games, sorted alphabetically.",
+)
+async def list_game_genres(
+    game_service: GameService = Depends(get_game_service),
+    request_id: str = Depends(get_request_id),
+) -> ResponseEnvelope[list[str]]:
+    return ResponseEnvelope[list[str]](
+        data=game_service.list_genres(),
+        error=None,
+        meta=MetaEnvelope(request_id=request_id, timestamp=datetime.now(UTC).isoformat()),
     )
 
 

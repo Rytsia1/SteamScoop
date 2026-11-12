@@ -21,6 +21,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
   const [genresText, setGenresText] = useState("");
   const [catalogStatus, setCatalogStatus] = useState<CatalogStatus>("indexed");
   const [isFree, setIsFree] = useState(false);
+  const [releaseDate, setReleaseDate] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -51,6 +52,7 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
         name: name.trim(),
         short_description: shortDescription.trim() || undefined,
         genres: genres.length > 0 ? genres : undefined,
+        release_date: releaseDate || undefined,
         catalog_status: catalogStatus,
         is_free: isFree,
       });
@@ -164,6 +166,23 @@ export const NewGameModal: React.FC<NewGameModalProps> = ({
               placeholder="Action, Roguelike, Indie"
               className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
             />
+          </div>
+
+          <div>
+            <label htmlFor="release-date-input" className="block text-xs font-medium text-slate-300 mb-1">
+              Release Date
+            </label>
+            <input
+              id="release-date-input"
+              type="date"
+              value={releaseDate}
+              onChange={(e) => setReleaseDate(e.target.value)}
+              aria-describedby="release-date-help"
+              className="w-full px-3 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-100 text-xs focus:ring-2 focus:ring-sky-500 focus:outline-none"
+            />
+            <p id="release-date-help" className="mt-1 text-[11px] text-slate-500">
+              A future date lists the game under Upcoming.
+            </p>
           </div>
 
           <div className="flex items-center gap-2 pt-1">

@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "../app/router/Router";
 import { useParams } from "../app/router/RouterContext";
 import { gameReviewsPath, ROUTES } from "../app/router/routes";
-import { useGameOverview } from "../features/games/api/gamesApi";
+import { useGame, useGameOverview } from "../features/games/api/gamesApi";
+import { getGameName } from "../features/games/types/game";
+import { useRecentlyViewed } from "../features/games/hooks/useGameList";
+import { FavoriteButton } from "../features/games/components/FavoriteButton";
 import {
   useGameAnalytics,
   useGameAspects,
@@ -52,6 +55,26 @@ export const GameOverviewPage: React.FC = () => {
     error: overviewError,
     refetch: refetchOverview,
   } = useGameOverview(gameId);
+
+  // Game identity for favorites / recently viewed comes from GET /games/{id}
+  const { data: gameDetail } = useGame(gameId);
+  const savedGame = gameDetail
+    ? {
+        id: gameDetail.id,
+        name: getGameName(gameDetail),
+        header_image_url: gameDetail.header_image_url,
+      }
+    : null;
+
+  const { pushRecent } = useRecentlyViewed();
+  const savedId = savedGame?.id;
+  const savedName = savedGame?.name;
+  const savedImage = savedGame?.header_image_url;
+  useEffect(() => {
+    if (savedId && savedName) {
+      pushRecent({ id: savedId, name: savedName, header_image_url: savedImage });
+    }
+  }, [savedId, savedName, savedImage, pushRecent]);
 
   const {
     data: analyticsData,
@@ -165,9 +188,12 @@ export const GameOverviewPage: React.FC = () => {
             )}
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {game.name || game.title}
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              {game.name || game.title}
+            </h1>
+            {savedGame && <FavoriteButton game={savedGame} className="p-1.5 [&>svg]:w-5 [&>svg]:h-5" />}
+          </div>
 
           <p className="text-xs sm:text-sm text-slate-400">
             Developer: <span className="text-slate-200">{game.developer || (game.developers && game.developers[0]) || "Unknown"}</span>
